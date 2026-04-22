@@ -15,11 +15,12 @@ return new class extends Migration
             $table->id('enrollment_id');
             $table->integer('program_id');
             $table->foreign('program_id')->references('program_id')->on('programs');
-            $table->string('academic_year');
-            $table->enum('semester', ['1st', '2nd', 'Summer']);
-            $table->string('male');
-            $table->string('female');
-            $table->unique(['program_id', 'academic_year', 'semester']);
+            $table->integer('academic_year_start');
+            $table->integer('academic_year_end');
+            $table->enum('semester', ['First', 'Second', 'Summer']);
+            $table->integer('male');
+            $table->integer('female');
+            $table->unique(['program_id', 'academic_year_start', 'academic_year_end', 'semester']);
             $table->timestamps();
         });
     }

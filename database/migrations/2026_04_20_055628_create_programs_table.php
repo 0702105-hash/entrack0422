@@ -15,7 +15,7 @@ return new class extends Migration
             $table->id('program_id');
             $table->integer('department_id');
             $table->foreign('department_id')->references('department_id')->on('departments');
-            $table->string('program_name');
+            $table->string('program_name')->unique();
             $table->timestamps();
         });
     }

@@ -13,14 +13,14 @@ return new class extends Migration
     {
         Schema::create('predictions', function (Blueprint $table) {
             $table->id('predictions_id');
-            $table->integer('enrollment_id');
-            $table->foreign('enrollment_id')->references('enrollment_id')->on('enrollments');
+            $table->integer('enrollment_batch_id');
+            $table->foreign('enrollment_id')->references('enrollment_batch_id')->on('enrollments_batches');
             $table->decimal('predicted_total');
             $table->decimal('predicted_male');
             $table->decimal('predicted_female');
             $table->decimal('confidence');
-            $table->integer('model_id');
-            $table->foreign('model_id')->references('model_id')->on('models');
+            $table->integer('mlmodel_id');
+            $table->foreign('mlmodel_id')->references('mlmodel_id')->on('mlmodels');
             $table->timestamps();
         });
     }

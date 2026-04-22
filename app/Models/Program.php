@@ -12,7 +12,7 @@ use App\Models\Department;
 class Program extends Model
 {
     protected $primaryKey = 'program_id';
-
+    protected $fillable = ['program_name', 'department_id'];
     public function department(): BelongsTo
     {
         return $this->belongsTo(Department::class, 'department_id', 'department_id');

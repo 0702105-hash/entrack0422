@@ -13,8 +13,8 @@ return new class extends Migration
     {
         Schema::create('model_metrics', function (Blueprint $table) {
             $table->id('metric_id');
-            $table->integer('prediction_id');
-            $table->foreign('prediction_id')->references('prediction_id')->on('predictions');
+            $table->integer('predictions_id');
+            $table->foreign('predictions_id')->references('predictions_id')->on('predictions');
             $table->decimal('mae_value');
             $table->decimal('rmse_value');
             $table->decimal('mape_value');

@@ -15,7 +15,7 @@ return new class extends Migration
             $table->id('user_id');
             $table->string('username', 60);
             $table->string('email')->unique();
-            $table->string('password', 60);
+            $table->string('password');
             $table->timestamps();
         });
 
@@ -26,7 +26,7 @@ return new class extends Migration
         });
 
         Schema::create('sessions', function (Blueprint $table) {
-            $table->string('session_id')->primary();
+            $table->string('id')->primary();
             $table->foreignId('user_id')->nullable()->index();
             $table->string('ip_address', 45)->nullable();
             $table->text('user_agent')->nullable();

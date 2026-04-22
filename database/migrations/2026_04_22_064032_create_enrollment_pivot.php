@@ -1,0 +1,31 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    /**
+     * Run the migrations.
+     */
+    public function up(): void
+    {
+        Schema::create('enrollment_pivot', function (Blueprint $table) {
+            $table->id('enrollment_pivot_id');
+            $table->integer('enrollment_id');
+            $table->foreign('enrollment_id')->references('enrollment_id')->on('enrollments');
+            $table->integer('enrollment_batch_id');
+            $table->foreign('enrollment_batch_id')->references('enrollment_batch_id')->on('enrollment_batches');
+            $table->timestamps();
+        });
+    }
+
+    /**
+     * Reverse the migrations.
+     */
+    public function down(): void
+    {
+        Schema::dropIfExists('enrollment_pivot');
+    }
+};
