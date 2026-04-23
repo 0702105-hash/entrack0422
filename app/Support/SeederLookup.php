@@ -5,6 +5,7 @@ namespace App\Support;
 use App\Models\Department;
 use App\Models\Enrollment;
 use App\Models\EnrollmentBatch;
+use App\Models\ModelMetric;
 use App\Models\Program;
 use App\Enums\SemesterEnums;
 use App\Models\MLModel;
@@ -70,10 +71,10 @@ class SeederLookup {
         $randomPrediction = Prediction::inRandomOrder()->first();
         if (!$randomPrediction) 
             {
-                $randomEnrollment = SeederLookup::getRandomEnrollment();
+                $randomEnrollmentBatch = SeederLookup::getRandomEnrollmentBatch();
                 $randomModel = SeederLookup::getRandomMLModel();
                 $randomPrediction = Prediction::firstOrCreate([
-                    'enrollment_id'=>$randomEnrollment->enrollment_id,
+                    'enrollment_batch_id'=>$randomEnrollmentBatch->enrollment_batch_id,
                     'predicted_total'=>fake()->numberBetween(1,1000),
                     'predicted_male'=>fake()->numberBetween(1,1000),
                     'predicted_female'=>fake()->numberBetween(1, 1000),
@@ -100,5 +101,22 @@ class SeederLookup {
                 ]);
             }
             return $randomEnrollmentBatch;
+    }
+
+    public static function getRandomMetric(): ModelMetric
+    {
+        $randomMetric = ModelMetric::inRandomOrder()->first();
+        if (!$randomMetric)
+            {
+                $randomPrediction = SeederLookup::getRandomPrediction();
+                ModelMetric::create([
+                    'predictions_id' => $randomPrediction->predictions_id,
+                    'mae_value' => fake()->numberBetween(50, 100),
+                    'rmse_value' => fake()->numberBetween(50, 100),
+                    'mape_value' => fake()->numberBetween(50, 100),
+                    'rsqaured_value' => fake()->numberBetween(50, 100),
+                ]);
+            }
+        return $randomMetric;
     }
 }

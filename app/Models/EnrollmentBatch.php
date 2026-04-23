@@ -21,8 +21,8 @@ class EnrollmentBatch extends Model
         return $this->hasMany(Prediction::class, 'enrollment_batch_id', 'enrollment_batch_id');
     }
 
-    public function pivot(): HasMany
+    public function enrollmentPivots(): HasMany
     {
-        return $this->hasMany(EnrollmentPivot::class, 'enrollment_pivot_id', 'enrollment_pivot_id');
+        return $this->hasMany(EnrollmentPivot::class, 'enrollment_batch_id', 'enrollment_batch_id');
     }
 }

@@ -13,15 +13,16 @@ class Enrollment extends Model
     
     public function enrollmentBatches()
     {
-        return $this->belongsToMany(EnrollmentBatch::class, 'enrollment_pivot', 'enrollment_id', 'enrollment_batch');
+        return $this->belongsToMany(EnrollmentBatch::class, 'enrollment_pivot', 'enrollment_id', 'enrollment_batch_id');
     }
     public function program(): BelongsTo
     {
         return $this->belongsTo(Program::class, 'program_id', 'program_id');
     }
 
-    public function enrollmentPivot(): HasMany
+    public function enrollmentPivots(): HasMany
     {
         return $this->hasMany(EnrollmentPivot::class, 'enrollment_id', 'enrollment_id');
     }
+
 }

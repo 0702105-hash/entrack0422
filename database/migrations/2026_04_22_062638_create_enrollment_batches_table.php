@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('enrollment_batches', function (Blueprint $table) {
             $table->id('enrollment_batch_id');
-            $table->id('program_id');
+            $table->integer('program_id');
             $table->foreign('program_id')->references('program_id')->on('programs');
             $table->integer('selected_year_start');
             $table->integer('selected_year_end');

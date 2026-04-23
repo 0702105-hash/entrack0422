@@ -13,10 +13,10 @@ class PredictionSeeder extends Seeder
      */
     public function run(): void
     {
-        $randomEnrollment = SeederLookup::getRandomEnrollment();
+        $randomEnrollmentBatch = SeederLookup::getRandomEnrollmentBatch();
         $randomModel = SeederLookup::getRandomMLModel();
         DB::table('predictions')->insert([
-            'enrollment_id'=>$randomEnrollment->enrollment_id,
+            'enrollment_batch_id'=>$randomEnrollmentBatch->enrollment_batch_id,
             'predicted_total'=>fake()->numberBetween(1,1000),
             'predicted_male'=>fake()->numberBetween(1,1000),
             'predicted_female'=>fake()->numberBetween(1, 1000),

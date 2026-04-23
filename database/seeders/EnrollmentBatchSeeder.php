@@ -14,9 +14,9 @@ class EnrollmentBatchSeeder extends Seeder
      */
     public function run(): void
     {
-        $randomEnrollmentBatch = SeederLookup::getRandomEnrollmentBatch();
+        $randomProgram= SeederLookup::getRandomProgram();
         DB::table('enrollment_batches')->insert([
-            'program_id' => $randomEnrollmentBatch->program_id,
+            'program_id' => $randomProgram->program_id,
             'selected_year_start' => fake()->numberBetween(2013, 2015),
             'selected_year_end' => fake()->numberBetween(2016, 2020),
             'selected_semester' =>fake()->randomElement(SemesterEnums::cases())->value,

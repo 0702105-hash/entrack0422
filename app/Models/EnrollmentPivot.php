@@ -17,8 +17,7 @@ class EnrollmentPivot extends Model
 
     public function enrollmentBatch(): BelongsTo
     {
-        return $this->belongsTo(EnrollmentBatches::class, 'enrollment_batch_id', 'enrollment_batch_id');
+        return $this->belongsTo(EnrollmentBatch::class, 'enrollment_batch_id', 'enrollment_batch_id');
     }
-
 
 }

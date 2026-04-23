@@ -1,4 +1,5 @@
 <?php
+use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\DepartmentController;
 use App\Http\Controllers\ProgramController;
 use App\Http\Controllers\EnrollmentController;
@@ -13,4 +14,5 @@ Route::get('/enrollments/{id}', [EnrollmentController::class, 'show']);
 Route::get('/mlmodels/{id}', [MLModelController::class, 'show']);
 Route::get('/predictions/{id}', [PredictionController::class, 'show']);
 Route::get('/model_metrics/{id}', [ModelMetricController::class, 'show']);
-Route::get('enrollment_batches/{id}', [EnrollmentBatchController::class, 'show']);
+Route::get('/enrollment_batches/{id}', [EnrollmentBatchController::class, 'show']);
+Route::get('/enrollment_pivot/{id}', [EnrollmentController::class, 'show']);

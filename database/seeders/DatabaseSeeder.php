@@ -17,7 +17,6 @@ class DatabaseSeeder extends Seeder
         MLModelSeeder::class,
         EnrollmentSeeder::class,
         EnrollmentBatchSeeder::class,
-        EnrollmentPivotSeeder::class,
         PredictionSeeder::class,
         ModelMetricSeeder::class,
        ]);

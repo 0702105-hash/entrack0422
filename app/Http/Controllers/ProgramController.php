@@ -10,7 +10,7 @@ class ProgramController extends Controller
 {
     public function show(int $id): JsonResponse
     {
-        $program = Program::with('enrollments.predictions')->firstWere('program_id', $id);
+        $program = Program::with('enrollments')->firstWhere('program_id', $id);
 
         if (!$program)
             {

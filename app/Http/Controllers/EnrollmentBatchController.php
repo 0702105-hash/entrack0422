@@ -10,7 +10,7 @@ class EnrollmentBatchController extends Controller
 
     public function show(int $id): JsonResponse
     {
-        $enrollmentBatch = EnrollmentBatch::with('enrollments')->firstWhere('enrollment_pivot', 'enrollment_batch_id', 'enrollment_id');
+        $enrollmentBatch = EnrollmentBatch::with('enrollmentPivots.enrollments')->firstWhere('enrollment_batch_id', $id);
         if (!$enrollmentBatch)
             {
                 return response()->json(['message' => 'Enrollment Batch not found!'], 404);

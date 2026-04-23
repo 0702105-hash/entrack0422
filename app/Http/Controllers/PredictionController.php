@@ -9,7 +9,7 @@ class PredictionController extends Controller
 {
     public function show(int $id): JsonResponse
     {
-        $prediction = Prediction::with('modelmlmodel')->firstWhere('predictions_id', $id);
+        $prediction = Prediction::with('modelMetrics.mlmodel')->firstWhere('predictions_id', $id);
         if (!$prediction)
             {
                 return response()->json(['message' => 'Prediction not found!'], 404);
