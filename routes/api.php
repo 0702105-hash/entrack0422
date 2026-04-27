@@ -8,6 +8,7 @@ use App\Http\Controllers\PredictionController;
 use App\Http\Controllers\ModelMetricController;
 use App\Http\Controllers\EnrollmentBatchController;
 
+
 Route::get('/departments/{id}', [DepartmentController::class, 'show']);
 Route::get('/programs/{id}', [ProgramController::class, 'show']);
 Route::get('/enrollments/{id}', [EnrollmentController::class, 'show']);
