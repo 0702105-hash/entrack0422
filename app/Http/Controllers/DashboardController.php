@@ -46,17 +46,19 @@ class DashboardController extends Controller
         ])->values();
 
         $trendRows = DB::table('predictions')
+            ->join('enrollment_batches', 'predictions.enrollment_batch_id', '=', 'enrollment_batches.enrollment_batch_id')
             ->select(
-                'academic_year_start',
-                DB::raw('SUM(predicted_total) as predicted_total'),
-                DB::raw('AVG(predicted_total) as baseline_total')
+                'enrollment_batches.selected_year_start as year_start',
+                'enrollment_batches.selected_year_end as year_end',
+                DB::raw('SUM(predictions.predicted_total) as predicted_total'),
+                DB::raw('SUM(enrollment_batches.total_male + enrollment_batches.total_female) as baseline_total')
             )
-            ->groupBy('academic_year_start')
-            ->orderBy('academic_year_start')
+            ->groupBy('year_start', 'year_end')
+            ->orderBy('year_start')
             ->get();
 
         $trendData = $trendRows->map(fn ($row) => [
-            'period' => 'AY ' . $row->academic_year_start,
+            'period' => 'AY ' . $row->year_start . '-' . $row->year_end,
             'predicted' => (int) $row->predicted_total,
             'baseline' => (int) $row->baseline_total,
         ])->values();
