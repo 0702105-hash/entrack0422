@@ -46,7 +46,7 @@ export default function Dashboard({
           <Sidebar />
 
           <main className="min-w-0 flex-1">
-            <Topbar />
+            
 
             <div className="mt-5 grid grid-cols-12 gap-4 md:gap-5">
               <section className="col-span-12 xl:col-span-7">
