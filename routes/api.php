@@ -7,6 +7,8 @@ use App\Http\Controllers\MLModelController;
 use App\Http\Controllers\PredictionController;
 use App\Http\Controllers\ModelMetricController;
 use App\Http\Controllers\EnrollmentBatchController;
+use App\Http\Controllers\PredictionRunController;
+use App\Http\Controllers\DashboardAnalyticsController;
 
 
 Route::get('/departments/{id}', [DepartmentController::class, 'show']);
@@ -17,3 +19,6 @@ Route::get('/predictions/{id}', [PredictionController::class, 'show']);
 Route::get('/model_metrics/{id}', [ModelMetricController::class, 'show']);
 Route::get('/enrollment_batches/{id}', [EnrollmentBatchController::class, 'show']);
 Route::get('/enrollment_pivot/{id}', [EnrollmentController::class, 'show']);
+
+Route::post('/predictions/run', [PredictionRunController::class, 'store']);
+Route::get('/dashboard/analytics', [DashboardAnalyticsController::class, 'index']);
