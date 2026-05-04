@@ -1,12 +1,13 @@
 import React from 'react'
-import AppLayout from '@/layouts/app-layout'
+import { Head } from '@inertiajs/react'
+import PublicLayout from '@/layouts/PublicLayout';
 import Sidebar from '@/components/dashboard/Sidebar'
 import Topbar from '@/components/dashboard/Topbar'
 import MetricCard from '@/components/dashboard/MetricCard'
 import DonutResourcesChart from '@/components/dashboard/DonutResourcesChart'
 import EnrollmentLineChart from '@/components/dashboard/EnrollmentLineChart'
 import SideInfoCard from '@/components/dashboard/SideInfoCard'
-import { Head } from '@inertiajs/react'
+
 
 type Summary = {
   total_predicted: number
@@ -38,15 +39,14 @@ export default function Dashboard({
   trendData,
 }: DashboardProps) {
   return (
-    <AppLayout>
-      <Head title="Dashboard" />
+    <>
+    <Head title="Dashboard" />
 
+    <PublicLayout>
       <div className="min-h-screen bg-sky-100 p-4 md:p-8">
-        <div className="mx-auto flex w-full max-w-[1400px] gap-4 rounded-[32px] border border-white/50 bg-emerald-50/80 p-4 shadow-xl backdrop-blur md:gap-6 md:p-6">
-          <Sidebar />
-
+        <Sidebar />
           <main className="min-w-0 flex-1">
-            
+            <Topbar />
 
             <div className="mt-5 grid grid-cols-12 gap-4 md:gap-5">
               <section className="col-span-12 xl:col-span-7">
@@ -113,7 +113,7 @@ export default function Dashboard({
             </div>
           </main>
         </div>
-      </div>
-    </AppLayout>
+    </PublicLayout>
+    </>
   )
 }
