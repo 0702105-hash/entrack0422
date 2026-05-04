@@ -11,7 +11,7 @@ const navItems = [
 
 export default function Sidebar() {
   return (
-    <aside className="hidden w-64 shrink-0 rounded-2xl border border-white/60 bg-white/85 p-4 shadow-md backdrop-blur lg:block">
+    <aside className="w-64 shrink-0 rounded-2xl border border-white/70 bg-white/85 p-4 shadow-md backdrop-blur">
       <div className="mb-6 flex items-center gap-2 px-2">
         <div className="h-8 w-8 rounded-lg bg-emerald-500" />
         <p className="text-lg font-bold text-slate-800">EnTrack</p>

@@ -1,13 +1,12 @@
 import React from 'react'
 import { Head } from '@inertiajs/react'
-import PublicLayout from '@/layouts/PublicLayout';
+import PublicLayout from '@/layouts/PublicLayout'
 import Sidebar from '@/components/dashboard/Sidebar'
 import Topbar from '@/components/dashboard/Topbar'
 import MetricCard from '@/components/dashboard/MetricCard'
 import DonutResourcesChart from '@/components/dashboard/DonutResourcesChart'
 import EnrollmentLineChart from '@/components/dashboard/EnrollmentLineChart'
 import SideInfoCard from '@/components/dashboard/SideInfoCard'
-
 
 type Summary = {
   total_predicted: number
@@ -40,11 +39,12 @@ export default function Dashboard({
 }: DashboardProps) {
   return (
     <>
-    <Head title="Dashboard" />
+      <Head title="Dashboard" />
 
-    <PublicLayout>
-      <div className="min-h-screen bg-sky-100 p-4 md:p-8">
-        <Sidebar />
+      <PublicLayout>
+        <div className="flex gap-4 md:gap-6">
+          <Sidebar />
+
           <main className="min-w-0 flex-1">
             <Topbar />
 
@@ -113,7 +113,7 @@ export default function Dashboard({
             </div>
           </main>
         </div>
-    </PublicLayout>
+      </PublicLayout>
     </>
   )
 }
