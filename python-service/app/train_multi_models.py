@@ -28,7 +28,7 @@ from xgboost import XGBRegressor
 tf.get_logger().setLevel('ERROR')
 
 print("=" * 80)
-print("🔮 MULTI-MODEL ENROLLMENT PREDICTION SYSTEM (2026-2027 & 2027-2028)")
+print("MULTI-MODEL ENROLLMENT PREDICTION SYSTEM (2026-2027 & 2027-2028)")
 print("Models: Facebook Prophet | LSTM | XGBoost")
 print("=" * 80)
 
@@ -60,6 +60,7 @@ SEMESTER_MONTH_MAP = {
     2: 1,
     3: 6
 }
+
 SEMESTER_ORDER = (1, 2, 3)
 PROPHET_FREQ = '4MS'
 PROPHET_CUSTOM_SEASONALITY = {
@@ -960,7 +961,6 @@ def predict_for_program(program_id, program_data, future_years=1):
     print(f"📚 Program {program_id}: {PROGRAM_NAMES.get(program_id, 'Unknown')}")
     print(f"{'=' * 60}")
 
-    program_data = normalize_enrollment_history(program_data)
     program_data = program_data.sort_values(['academic_year', 'semester']).reset_index(drop=True)
 
     if len(program_data) < 5:

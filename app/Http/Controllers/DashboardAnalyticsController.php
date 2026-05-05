@@ -23,7 +23,8 @@ class DashboardAnalyticsController extends Controller
             'total_predicted' => (int) ($summaryRow->total_predicted ?? 0),
             'total_male' => (int) ($summaryRow->total_male ?? 0),
             'total_female' => (int) ($summaryRow->total_female ?? 0),
-            'avg_confidence' => round((float) ($summaryRow->avg_confidence ?? 0), 2),
+            // FIXED: Multiply by 100 for percentage
+            'avg_confidence' => round((float) ($summaryRow->avg_confidence ?? 0) * 100, 2),
         ];
 
         $programDistributionRows = DB::table('predictions')

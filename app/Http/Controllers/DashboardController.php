@@ -11,6 +11,7 @@ class DashboardController extends Controller
 {
     public function index(): Response
     {
+        // 1. Fetch Summary Totals
         $summaryRow = Prediction::query()
             ->selectRaw('
                 COALESCE(SUM(predicted_total), 0) as total_predicted,
@@ -24,14 +25,15 @@ class DashboardController extends Controller
             'total_predicted' => (int) ($summaryRow->total_predicted ?? 0),
             'total_male' => (int) ($summaryRow->total_male ?? 0),
             'total_female' => (int) ($summaryRow->total_female ?? 0),
-            'avg_confidence' => round((float) ($summaryRow->avg_confidence ?? 0), 2),
+            // Multiply by 100 so a 0.85 confidence float becomes 85% for the UI
+            'avg_confidence' => round((float) ($summaryRow->avg_confidence ?? 0) * 100, 2), 
         ];
 
+        // 2. Program Distribution (Donut Chart)
+        // FIXED: Joined directly from enrollment_batches to programs (bypassing the empty pivot table)
         $programDistributionRows = DB::table('predictions')
             ->join('enrollment_batches', 'predictions.enrollment_batch_id', '=', 'enrollment_batches.enrollment_batch_id')
-            ->join('enrollment_pivot', 'enrollment_batches.enrollment_batch_id', '=', 'enrollment_pivot.enrollment_batch_id')
-            ->join('enrollments', 'enrollment_pivot.enrollment_id', '=', 'enrollments.enrollment_id')
-            ->join('programs', 'enrollments.program_id', '=', 'programs.program_id')
+            ->join('programs', 'enrollment_batches.program_id', '=', 'programs.program_id')
             ->select(
                 'programs.program_name as name',
                 DB::raw('SUM(predictions.predicted_total) as value')
@@ -45,6 +47,7 @@ class DashboardController extends Controller
             'value' => (int) $row->value,
         ])->values();
 
+        // 3. Trend Data (Line Chart)
         $trendRows = DB::table('predictions')
             ->join('enrollment_batches', 'predictions.enrollment_batch_id', '=', 'enrollment_batches.enrollment_batch_id')
             ->select(
@@ -63,6 +66,7 @@ class DashboardController extends Controller
             'baseline' => (int) $row->baseline_total,
         ])->values();
 
+        // Send perfectly formatted data to Dashboard.tsx
         return Inertia::render('Dashboard', [
             'summary' => $summary,
             'programDistribution' => $programDistribution,
