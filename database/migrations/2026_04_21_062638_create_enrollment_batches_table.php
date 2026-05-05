@@ -13,14 +13,16 @@ return new class extends Migration
     {
         Schema::create('enrollment_batches', function (Blueprint $table) {
             $table->id('enrollment_batch_id');
-            $table->integer('program_id');
+            $table->unsignedBigInteger('program_id');
             $table->foreign('program_id')->references('program_id')->on('programs');
             $table->integer('selected_year_start');
             $table->integer('selected_year_end');
             $table->enum('selected_semester', ['First', 'Second', 'Summer']);
             $table->integer('total_male');
             $table->integer('total_female');
-            $table->unique(['program_id', 'selected_year_start', 'selected_year_end', 'selected_semester']);
+            $table->unique(['program_id', 'selected_year_start', 'selected_year_end', 'selected_semester'],
+            'enroll_batches_prog_year_sem_uq'
+        );
             $table->timestamps();
         });
     }

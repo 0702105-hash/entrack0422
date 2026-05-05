@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('model_metrics', function (Blueprint $table) {
             $table->id('metric_id');
-            $table->integer('predictions_id');
+            $table->unsignedBigInteger('predictions_id');
             $table->foreign('predictions_id')->references('predictions_id')->on('predictions');
             $table->decimal('mae_value');
             $table->decimal('rmse_value');

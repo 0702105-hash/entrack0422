@@ -13,9 +13,9 @@ return new class extends Migration
     {
         Schema::create('enrollment_pivot', function (Blueprint $table) {
             $table->id('enrollment_pivot_id');
-            $table->integer('enrollment_id');
+            $table->unsignedBigInteger('enrollment_id');
             $table->foreign('enrollment_id')->references('enrollment_id')->on('enrollments');
-            $table->integer('enrollment_batch_id');
+            $table->unsignedBigInteger('enrollment_batch_id');
             $table->foreign('enrollment_batch_id')->references('enrollment_batch_id')->on('enrollment_batches');
             $table->timestamps();
         });

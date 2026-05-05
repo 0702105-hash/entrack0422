@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('programs', function (Blueprint $table) {
             $table->id('program_id');
-            $table->integer('department_id');
+            $table->unsignedBigInteger('department_id');
             $table->foreign('department_id')->references('department_id')->on('departments');
             $table->string('program_name')->unique();
             $table->timestamps();
