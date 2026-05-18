@@ -49,8 +49,16 @@ export default function Dashboard({
             <Topbar />
 
             <div className="mt-5 grid grid-cols-12 gap-4 md:gap-5">
-              <section className="col-span-12 xl:col-span-7">
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+
+              <section className="col-span-10 xl:col-span-6">
+                <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+                  <MetricCard
+                    title="Predicted Male"
+                    value={summary.total_male}
+                    change="+8%"
+                    tone="emerald"
+                  />
+
                   <MetricCard
                     title="Total Predicted"
                     value={summary.total_predicted}
@@ -58,17 +66,12 @@ export default function Dashboard({
                     tone="amber"
                   />
                   <MetricCard
-                    title="Predicted Male"
-                    value={summary.total_male}
-                    change="+8%"
-                    tone="emerald"
-                  />
-                  <MetricCard
                     title="Predicted Female"
                     value={summary.total_female}
                     change="+10%"
                     tone="sky"
                   />
+
                   <MetricCard
                     title="Avg Confidence"
                     value={`${summary.avg_confidence}%`}
@@ -78,38 +81,13 @@ export default function Dashboard({
                 </div>
               </section>
 
-              <section className="col-span-12 xl:col-span-5">
+              <section className="col-span-12 xl:col-span-6">
                 <DonutResourcesChart data={programDistribution} />
               </section>
-
-              <section className="col-span-12 xl:col-span-8">
+              <section className="col-span-12 xl">
                 <EnrollmentLineChart data={trendData} />
               </section>
 
-              <section className="col-span-12 xl:col-span-4">
-                <div className="grid grid-cols-1 gap-4">
-                  <SideInfoCard
-                    title="Top Program"
-                    value={
-                      programDistribution.length
-                        ? programDistribution[0].name
-                        : 'N/A'
-                    }
-                    subValue={
-                      programDistribution.length
-                        ? `${programDistribution[0].value} students`
-                        : 'No data'
-                    }
-                    accent="emerald"
-                  />
-                  <SideInfoCard
-                    title="System Health"
-                    value="Predictions Ready"
-                    subValue={`${summary.avg_confidence}% confidence average`}
-                    accent="sky"
-                  />
-                </div>
-              </section>
             </div>
           </main>
         </div>

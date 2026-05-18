@@ -23,7 +23,6 @@ class DashboardAnalyticsController extends Controller
             'total_predicted' => (int) ($summaryRow->total_predicted ?? 0),
             'total_male' => (int) ($summaryRow->total_male ?? 0),
             'total_female' => (int) ($summaryRow->total_female ?? 0),
-            // FIXED: Multiply by 100 for percentage
             'avg_confidence' => round((float) ($summaryRow->avg_confidence ?? 0) * 100, 2),
         ];
 
@@ -43,23 +42,64 @@ class DashboardAnalyticsController extends Controller
             'value' => (int) $row->value,
         ])->values();
 
-        $trendRows = DB::table('predictions')
-            ->join('enrollment_batches', 'predictions.enrollment_batch_id', '=', 'enrollment_batches.enrollment_batch_id')
+        // Trend Data (Line Chart) - FIXED TO INCLUDE HISTORY
+        $historical = DB::table('enrollments')
             ->select(
-                'enrollment_batches.selected_year_start as year_start',
-                'enrollment_batches.selected_year_end as year_end',
-                DB::raw('SUM(predictions.predicted_total) as predicted_total'),
-                DB::raw('SUM(enrollment_batches.total_male + enrollment_batches.total_female) as baseline_total')
+                'academic_year_start as year_start',
+                'academic_year_end as year_end',
+                DB::raw('SUM(male + female) as total')
             )
             ->groupBy('year_start', 'year_end')
             ->orderBy('year_start')
             ->get();
 
-        $trendData = $trendRows->map(fn ($row) => [
-            'period' => 'AY ' . $row->year_start . '-' . $row->year_end,
-            'predicted' => (int) $row->predicted_total,
-            'baseline' => (int) $row->baseline_total,
-        ])->values();
+        $predictions = DB::table('predictions')
+            ->join('enrollment_batches', 'predictions.enrollment_batch_id', '=', 'enrollment_batches.enrollment_batch_id')
+            ->select(
+                'enrollment_batches.selected_year_start as year_start',
+                'enrollment_batches.selected_year_end as year_end',
+                DB::raw('SUM(predictions.predicted_total) as total')
+            )
+            ->groupBy('year_start', 'year_end')
+            ->orderBy('year_start')
+            ->get();
+
+        $trendMap = [];
+
+        foreach ($historical as $row) {
+            $period = 'AY ' . $row->year_start . '-' . $row->year_end;
+            $trendMap[$period] = [
+                'period' => $period,
+                'baseline' => (int) $row->total,
+                'predicted' => null,
+                'sort_key' => $row->year_start
+            ];
+        }
+
+        if (!empty($trendMap)) {
+            $lastPeriod = array_key_last($trendMap);
+            $trendMap[$lastPeriod]['predicted'] = $trendMap[$lastPeriod]['baseline'];
+        }
+
+        foreach ($predictions as $row) {
+            $period = 'AY ' . $row->year_start . '-' . $row->year_end;
+            if (!isset($trendMap[$period])) {
+                $trendMap[$period] = [
+                    'period' => $period,
+                    'baseline' => null,
+                    'predicted' => (int) $row->total,
+                    'sort_key' => $row->year_start
+                ];
+            } else {
+                $trendMap[$period]['predicted'] = (int) $row->total;
+            }
+        }
+
+        usort($trendMap, fn($a, $b) => $a['sort_key'] <=> $b['sort_key']);
+        $trendData = array_map(function($item) {
+            unset($item['sort_key']);
+            return $item;
+        }, $trendMap);
 
         return response()->json([
             'summary' => $summary,
