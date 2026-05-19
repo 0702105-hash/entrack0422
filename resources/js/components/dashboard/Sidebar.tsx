@@ -4,7 +4,7 @@ import { Link, usePage } from '@inertiajs/react'
 const navItems = [
   { label: 'Dashboard', href: '/dashboard' },
   { label: 'Programs', href: '/programs' }, 
-  { label: 'Predictions', href: '/predictions/create' },
+  { label: 'Predictions', href: '/predictions' },
   { label: 'Analytics', href: '#' },
   { label: 'Settings', href: '#' },
 ]

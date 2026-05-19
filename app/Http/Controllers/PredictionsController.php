@@ -11,7 +11,7 @@ class PredictionsController extends Controller
 
 
 
-class ProgramsController extends Controller
+/*class ProgramsController extends Controller
 {
     public function index(Request $request): Response
     {
@@ -123,4 +123,4 @@ class ProgramsController extends Controller
             return $item;
         }, $trendMap));
     }
-}
+}*/
