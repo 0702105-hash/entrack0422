@@ -2,122 +2,108 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Program;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
-use Illuminate\View\View;
 use Inertia\Inertia;
-use Inertia\Response;
 
 class ProgramsController extends Controller
 {
-    public function index(Request $request): Response
+    public function index()
     {
-        // 1. Get user filters (or set defaults)
-        $selectedModel = $request->input('model', 'Ensemble');
-        $selectedSemesters = (int) $request->input('semesters', 3);
+        $userDeptId = auth()->user()?->department_id;
 
-        // 2. Fetch all available models from DB to populate the dropdown
-        $models = DB::table('mlmodels')->pluck('mlmodel_name')->toArray();
-        if (empty($models)) {
-            $models = ['Ensemble', 'Prophet', 'LSTM', 'XGBoost'];
-        }
-
-        // --- FETCH MAIN AGGREGATE TREND ---
-        $mainTrend = $this->buildTimelineData(null, $selectedModel, $selectedSemesters);
-
-        // --- FETCH PROGRAM-SPECIFIC TRENDS ---
-        $programs = DB::table('programs')->get();
-        $programTrends = [];
-
-        foreach ($programs as $prog) {
-            $programTrends[] = [
-                'program_id' => $prog->program_id,
-                'program_name' => $prog->program_name,
-                'trend' => $this->buildTimelineData($prog->program_id, $selectedModel, $selectedSemesters)
-            ];
-        }
+        $programTrends = Program::query()
+            ->select('program_id', 'program_name')
+            ->when($userDeptId, fn ($q) => $q->where('department_id', $userDeptId)) // ✅ scoped only if user has dept
+            ->orderBy('program_name')
+            ->get()
+            ->map(fn ($p) => [
+                'program_id' => $p->program_id,
+                'program_name' => $p->program_name,
+                'trend' => [],
+            ]);
 
         return Inertia::render('Programs', [
             'filters' => [
-                'model' => $selectedModel,
-                'semesters' => $selectedSemesters,
+                'model' => request('model', 'Ensemble'),
             ],
-            'models' => $models,
-            'mainTrend' => $mainTrend,
+            'mainTrend' => [],
             'programTrends' => $programTrends,
         ]);
     }
 
-    private function buildTimelineData($programId, $modelName, $semesterLimit)
+    public function manage()
     {
-        $histQuery = DB::table('enrollments')
-            ->select(
-                'academic_year_start as year_start',
-                'academic_year_end as year_end',
-                DB::raw('SUM(male + female) as total')
-            )
-            ->groupBy('year_start', 'year_end')
-            ->orderBy('year_start');
+        $userDeptId = auth()->user()?->department_id;
 
-        if ($programId) {
-            $histQuery->where('program_id', $programId);
-        }
-        $historical = $histQuery->get();
+        $programs = Program::query()
+            ->leftJoin('departments', 'departments.department_id', '=', 'programs.department_id')
+            ->select([
+                'programs.program_id',
+                'programs.program_name',
+                'programs.department_id',
+                'departments.department_name',
+            ])
+            ->when($userDeptId, fn ($q) => $q->where('programs.department_id', $userDeptId)) // ✅ admin sees all
+            ->orderBy('programs.program_name')
+            ->get();
 
-        $predQuery = DB::table('predictions')
-            ->join('enrollment_batches', 'predictions.enrollment_batch_id', '=', 'enrollment_batches.enrollment_batch_id')
-            ->join('mlmodels', 'predictions.mlmodel_id', '=', 'mlmodels.mlmodel_id')
-            ->where('mlmodels.mlmodel_name', $modelName)
-            ->select(
-                'enrollment_batches.selected_year_start as year_start',
-                'enrollment_batches.selected_year_end as year_end',
-                DB::raw('SUM(predictions.predicted_total) as total')
-            )
-            ->groupBy('year_start', 'year_end')
-            ->orderBy('year_start')
-            ->limit(ceil($semesterLimit / 3));
+        return Inertia::render('ProgramsManage', [
+            'programs' => $programs,
+        ]);
+    }
 
-        if ($programId) {
-            $predQuery->where('enrollment_batches.program_id', $programId);
-        }
-        $predictions = $predQuery->get();
+    public function store(Request $request)
+    {
+        $userDeptId = auth()->user()?->department_id;
 
-        $trendMap = [];
+        $data = $request->validate([
+            'program_name' => ['required', 'string', 'max:255', 'unique:programs,program_name'],
+        ]);
 
-        foreach ($historical as $row) {
-            $period = substr($row->year_start, 2) . '-' . substr($row->year_end, 2);
-            $trendMap[$period] = [
-                'period' => 'AY ' . $period,
-                'baseline' => (int) $row->total,
-                'predicted' => null,
-                'sort_key' => $row->year_start
-            ];
-        }
+        // ✅ admin (no dept) must choose? For now, allow null department_id
+        Program::create([
+            'program_name' => $data['program_name'],
+            'department_id' => $userDeptId, // null = admin‑created (global)
+        ]);
 
-        if (!empty($trendMap)) {
-            $lastPeriod = array_key_last($trendMap);
-            $trendMap[$lastPeriod]['predicted'] = $trendMap[$lastPeriod]['baseline'];
+        return redirect()->route('programs.manage')
+            ->with('success', 'Program created.');
+    }
+
+    public function update(Request $request, Program $program)
+    {
+        $userDeptId = auth()->user()?->department_id;
+
+        // ✅ allow admin (null dept) OR same department
+        if ($userDeptId && $program->department_id !== $userDeptId) {
+            abort(403);
         }
 
-        foreach ($predictions as $row) {
-            $period = substr($row->year_start, 2) . '-' . substr($row->year_end, 2);
-            if (!isset($trendMap['AY ' . $period])) {
-                $trendMap['AY ' . $period] = [
-                    'period' => 'AY ' . $period,
-                    'baseline' => null,
-                    'predicted' => (int) $row->total,
-                    'sort_key' => $row->year_start
-                ];
-            } else {
-                $trendMap['AY ' . $period]['predicted'] = (int) $row->total;
-            }
+        $data = $request->validate([
+            'program_name' => ['required', 'string', 'max:255', 'unique:programs,program_name,' . $program->program_id . ',program_id'],
+        ]);
+
+        $program->update([
+            'program_name' => $data['program_name'],
+        ]);
+
+        return redirect()->route('programs.manage')
+            ->with('success', 'Program updated.');
+    }
+
+    public function destroy(Program $program)
+    {
+        $userDeptId = auth()->user()?->department_id;
+
+        // ✅ allow admin (null dept) OR same department
+        if ($userDeptId && $program->department_id !== $userDeptId) {
+            abort(403);
         }
 
-        usort($trendMap, fn($a, $b) => $a['sort_key'] <=> $b['sort_key']);
+        $program->delete();
 
-        return array_values(array_map(function ($item) {
-            unset($item['sort_key']);
-            return $item;
-        }, $trendMap));
+        return redirect()->route('programs.manage')
+            ->with('success', 'Program deleted.');
     }
 }
