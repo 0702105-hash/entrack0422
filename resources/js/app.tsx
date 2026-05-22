@@ -6,14 +6,21 @@ import AppLayout from '@/layouts/app-layout';
 import AuthLayout from '@/layouts/auth-layout';
 import SettingsLayout from '@/layouts/settings/layout';
 import axios from 'axios';
+import React, { useEffect } from 'react';
 
 const appName = import.meta.env.VITE_APP_NAME || 'Laravel';
-const token = document
-    .querySelector('meta[name="csrf-token"]')
-    ?.getAttribute('content');
 
-if (token) {
-    axios.defaults.headers.common['X-CSRF-TOKEN'] = token;
+function AppInitializer() {
+    useEffect(() => {
+        // Set CSRF token header (browser only)
+        const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+        if (token) {
+            axios.defaults.headers.common['X-CSRF-TOKEN'] = token;
+        }
+        // Set theme on load
+        initializeTheme();
+    }, []);
+    return null;
 }
 
 createInertiaApp({
@@ -36,6 +43,7 @@ createInertiaApp({
     withApp(app) {
         return (
             <TooltipProvider delayDuration={0}>
+                <AppInitializer />
                 {app}
                 <Toaster />
             </TooltipProvider>
@@ -45,6 +53,3 @@ createInertiaApp({
         color: '#4B5563',
     },
 });
-
-// This will set light / dark mode on load...
-initializeTheme();
