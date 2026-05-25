@@ -13,6 +13,7 @@ use Laravel\Fortify\TwoFactorAuthenticatable;
 
 #[Fillable(['username', 'email', 'password', 'department_id'])]
 #[Hidden(['password', 'two_factor_secret', 'two_factor_recovery_codes', 'remember_token'])]
+
 class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */
@@ -23,6 +24,9 @@ class User extends Authenticatable
      *
      * @return array<string, string>
      */
+    protected $primaryKey = 'user_id';
+    public $incrementing = true;
+    protected $keyType = 'int';
     protected function casts(): array
     {
         return [
