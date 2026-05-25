@@ -5,6 +5,7 @@ use Illuminate\Support\Facades\Route;
 use Laravel\Fortify\Features;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ProgramsController;
+use App\Http\Controllers\PredictController;
 
 Route::inertia('/', 'welcome', [
     'canRegister' => Features::enabled(Features::registration()),
@@ -18,6 +19,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::put('/programs/{program}', [ProgramsController::class, 'update'])->name('programs.update');
     Route::delete('/programs/{program}', [ProgramsController::class, 'destroy'])->name('programs.destroy');
     Route::get('/predictions', [PredictionController::class, 'index'])->name('predictions.index');
+    Route::post('/predict', [\App\Http\Controllers\PredictController::class, 'predict'])->name('predict');
 });
 
 Route::get('/debug-session', function () {
