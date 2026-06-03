@@ -9,6 +9,8 @@ class EnrollmentPivot extends Model
 {
     protected $table = 'enrollment_pivot';
     protected $primaryKey = 'enrollment_pivot_id';
+    public $incrementing = true;
+    protected $keyType = 'int';
     protected $fillable = ['enrollment_id', 'enrollment_batch_id'];
     public function enrollment(): BelongsTo
     {

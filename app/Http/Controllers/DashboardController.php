@@ -25,7 +25,7 @@ class DashboardController extends Controller
             'total_predicted' => (int) ($summaryRow->total_predicted ?? 0),
             'total_male' => (int) ($summaryRow->total_male ?? 0),
             'total_female' => (int) ($summaryRow->total_female ?? 0),
-            'avg_confidence' => round((float) ($summaryRow->avg_confidence ?? 0) * 100, 2), 
+            'avg_confidence' => round((float) ($summaryRow->avg_confidence ?? 0), 2), 
         ];
 
         // 2. Program Distribution (Donut Chart)

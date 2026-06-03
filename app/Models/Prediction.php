@@ -9,6 +9,8 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 class Prediction extends Model
 {
     protected $primaryKey = 'predictions_id';
+    public $incrementing = true;
+    protected $keyType = 'int';
     protected $fillable = [
         'enrollment_batch_id',
         'predicted_total',

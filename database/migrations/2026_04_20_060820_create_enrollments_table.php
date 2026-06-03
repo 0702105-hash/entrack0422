@@ -4,8 +4,7 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-return new class extends Migration
-{
+return new class extends Migration {
     /**
      * Run the migrations.
      */
@@ -13,8 +12,7 @@ return new class extends Migration
     {
         Schema::create('enrollments', function (Blueprint $table) {
             $table->id('enrollment_id');
-            $table->unsignedBigInteger('program_id');
-            $table->foreign('program_id')->references('program_id')->on('programs');
+            $table->foreignId('program_id')->constrained('programs', 'program_id')->onDelete('cascade');
             $table->integer('academic_year_start');
             $table->integer('academic_year_end');
             $table->enum('semester', ['First', 'Second', 'Summer']);

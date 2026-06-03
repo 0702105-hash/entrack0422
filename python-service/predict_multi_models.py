@@ -1,23 +1,20 @@
 import os
+import sys
 import time
 import warnings
+import json
+from datetime import datetime
 
-import mysql.connector
 import numpy as np
 import pandas as pd
-
-warnings.filterwarnings('ignore')
-
-# Reduce TensorFlow startup noise and keep deterministic CPU behavior by default.
-os.environ.setdefault('TF_CPP_MIN_LOG_LEVEL', '2')
-os.environ.setdefault('TF_ENABLE_ONEDNN_OPTS', '0')
+import mysql.connector
 
 from prophet import Prophet
 from prediction_config import PROPHET_CONFIG
 from sklearn.compose import TransformedTargetRegressor
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 from sklearn.pipeline import Pipeline
-from sklearn.preprocessing import MinMaxScaler, StandardScaler
+from sklearn.preprocessing import StandardScaler
 import tensorflow as tf
 from tensorflow.keras.callbacks import EarlyStopping
 from tensorflow.keras.layers import LSTM, Dense, Dropout
@@ -25,20 +22,31 @@ from tensorflow.keras.models import Sequential
 from tensorflow.keras.optimizers import Adam
 from xgboost import XGBRegressor
 
-tf.get_logger().setLevel('ERROR')
+warnings.filterwarnings('ignore')
+os.environ.setdefault('TF_CPP_MIN_LOG_LEVEL', '2')
+os.environ.setdefault('TF_ENABLE_ONEDNN_OPTS', '0')
 
-print("=" * 80)
-print("🔮 MULTI-MODEL ENROLLMENT PREDICTION SYSTEM (2026-2027 & 2027-2028)")
-print("Models: Facebook Prophet | LSTM | XGBoost")
-print("=" * 80)
+tf.get_logger().setLevel('ERROR')
 
 DB_CONFIG = {
     'host': 'localhost',
     'user': 'root',
-    'password': '',
-    'database': 'casDB'
+    'password': 'entrack123',
+    'database': 'entrack'
 }
 
+SEMESTER_ORDER = (1, 2, 3)
+SEMESTER_MAP = {'First': 1, 'Second': 2, 'Summer': 3}
+PROG_MAP = {
+    'BACHELOR OF ARTS IN COMMUNICATION': 1,
+    'BACHELOR OF ARTS IN ENGLISH LANGUAGE': 2,
+    'BACHELOR OF ARTS IN POLITICAL SCIENCE': 3,
+    'BACHELOR OF LIBRARY AND INFORMATION SCIENCE': 4,
+    'BACHELOR OF MUSIC IN MUSIC EDUCATION': 5,
+    'BACHELOR OF SCIENCE IN BIOLOGY': 6,
+    'BACHELOR OF SCIENCE IN INFORMATION TECHNOLOGY': 7,
+    'BACHELOR OF SCIENCE IN SOCIAL WORK': 8,
+}
 PROGRAM_NAMES = {
     1: 'BA Communication',
     2: 'BA English',
@@ -49,18 +57,11 @@ PROGRAM_NAMES = {
     7: 'BSIT',
     8: 'BS Social Work'
 }
-# Canonical ensemble label used everywhere (DB, API defaults, UI labels)
+SEMESTER_MONTH_MAP = {1: 8, 2: 1, 3: 6}
 ENSEMBLE_LABEL = "Prophet+LSTM+XGBoost"
+PROPHET_FREQ='4MS'
 CONFIDENCE_MIN = 0.05
 CONFIDENCE_MAX = 0.98
-
-SEMESTER_MONTH_MAP = {
-    1: 8,
-    2: 1,
-    3: 6
-}
-SEMESTER_ORDER = (1, 2, 3)
-PROPHET_FREQ = '4MS'
 PROPHET_CUSTOM_SEASONALITY = {
     'name': PROPHET_CONFIG.get('custom_seasonality_name', 'academic_cycle'),
     'period': float(PROPHET_CONFIG.get('custom_seasonality_period', 365.25)),
@@ -68,6 +69,25 @@ PROPHET_CUSTOM_SEASONALITY = {
     'prior_scale': float(PROPHET_CONFIG.get('custom_seasonality_prior_scale', 10.0))
 }
 
+def load_excel_or_csv(path):
+    
+    df = pd.read_csv("C:/entrack/uploads/entrack.csv")
+    df = df.rename(columns=lambda x: x.strip())  # remove leading/trailing spaces
+    df['academic_year'] = df['AY Start'].astype(str) + '-' + df['AY End'].astype(str)
+    df = df.rename(columns={'Semester': 'semester'})
+    
+    df.columns = [c.strip() for c in df.columns]
+    df['academic_year_start'] = df['AY Start'].astype(int)
+    df['academic_year_end'] = df['AY End'].astype(int)
+    df['program_id'] = df['Program'].str.upper().map(PROG_MAP)
+    df['semester'] = df['Semester'].map(SEMESTER_MAP)
+    df['male'] = pd.to_numeric(df['Male'], errors='coerce').fillna(0)
+    df['female'] = pd.to_numeric(df['Female'], errors='coerce').fillna(0)
+    df['total'] = df['male'] + df['female']
+    df = df.dropna(subset=['program_id', 'semester'])
+    df['program_id'] = df['program_id'].astype(int)
+    df['semester'] = df['semester'].astype(int)
+    return df
 
 def parse_academic_year_start(academic_year):
     try:
@@ -75,62 +95,26 @@ def parse_academic_year_start(academic_year):
     except (TypeError, ValueError, IndexError):
         return np.nan
 
-
 def normalize_enrollment_history(df):
-    if df is None or df.empty:
-        return df
-
-    normalized_source = df.copy()
-    normalized_source['academic_year_start'] = normalized_source['academic_year'].apply(parse_academic_year_start)
-
-    if 'male' not in normalized_source.columns:
-        normalized_source['male'] = 0
-    if 'female' not in normalized_source.columns:
-        normalized_source['female'] = 0
-
-    normalized_source['male'] = pd.to_numeric(normalized_source['male'], errors='coerce').fillna(0)
-    normalized_source['female'] = pd.to_numeric(normalized_source['female'], errors='coerce').fillna(0)
-
-    aggregated = normalized_source.groupby(
-        ['program_id', 'academic_year', 'academic_year_start', 'semester'],
-        as_index=False,
-        dropna=False
-    )[['male', 'female']].sum()
-    aggregated['total'] = aggregated['male'] + aggregated['female']
-
-    normalized_rows = []
-    group_columns = ['program_id', 'academic_year', 'academic_year_start']
-    for group_values, group_df in aggregated.groupby(group_columns, sort=False):
-        program_id, academic_year, academic_year_start = group_values
-        semester_lookup = group_df.set_index('semester')
-
+    # Makes sure all years/semesters are present for each program, fills missing semesters with 0
+    all_rows = []
+    for (pid, ystart, yend), group in df.groupby(['program_id', 'academic_year_start', 'academic_year_end']):
+        group = group.set_index('semester')
         for semester in SEMESTER_ORDER:
-            if semester in semester_lookup.index:
-                row = semester_lookup.loc[semester]
-                male = float(row['male'])
-                female = float(row['female'])
-                total = float(row['total'])
+            if semester in group.index:
+                row = group.loc[semester]
             else:
-                male = 0.0
-                female = 0.0
-                total = 0.0
-
-            normalized_rows.append({
-                'program_id': int(program_id),
-                'academic_year': academic_year,
-                'academic_year_start': academic_year_start,
-                'semester': int(semester),
-                'male': male,
-                'female': female,
-                'total': total
+                row = pd.Series({'male': 0, 'female': 0, 'total': 0}, name=semester)
+            all_rows.append({
+                'program_id': pid,
+                'academic_year_start': ystart,
+                'academic_year_end': yend,
+                'semester': semester,
+                'male': row['male'],
+                'female': row['female'],
+                'total': row['male'] + row['female'],
             })
-
-    normalized_df = pd.DataFrame(normalized_rows)
-    normalized_df = normalized_df.sort_values(
-        ['program_id', 'academic_year_start', 'semester', 'academic_year'],
-        kind='mergesort'
-    ).reset_index(drop=True)
-    return normalized_df.drop(columns=['academic_year_start'])
+    return pd.DataFrame(all_rows)
 
 
 def is_valid_metric_value(value):
@@ -723,32 +707,6 @@ class XGBoostPredictor:
             return None
 
 
-def load_enrollment_data():
-    print("\n📂 Loading historical data...")
-    started = time.perf_counter()
-
-    conn = mysql.connector.connect(**DB_CONFIG)
-    try:
-        df = pd.read_sql("""
-            SELECT program_id, academic_year, semester, male, female,
-                   (male + female) as total
-            FROM enrollments
-                WHERE academic_year NOT LIKE '%-2027'
-            ORDER BY program_id, academic_year, semester
-        """, conn)
-    finally:
-        conn.close()
-
-    if df.empty:
-        print("❌ No historical enrollment data found!")
-        return None
-
-    df = normalize_enrollment_history(df)
-
-    print(f"✅ Loaded {len(df)} records from {df['program_id'].nunique()} programs in {time.perf_counter() - started:.2f}s")
-    return df
-
-
 def build_gender_ratio_map(df_hist):
     ratio_map = {}
     grouped = df_hist.groupby('program_id')[['male', 'female']].sum().reset_index()
@@ -760,6 +718,31 @@ def build_gender_ratio_map(df_hist):
         ratio_map[int(row['program_id'])] = (total_male / total_all) if total_all > 0 else 0.5
 
     return ratio_map
+
+def get_or_create_enrollment_batch(cursor, program_id, year_start, year_end, semester):
+    cursor.execute("""
+        SELECT enrollment_batch_id FROM enrollment_batches
+         WHERE program_id=%s AND selected_year_start=%s AND selected_year_end=%s AND selected_semester=%s
+    """, (program_id, year_start, year_end, semester))
+    row = cursor.fetchone()
+    if row:
+        return row[0]
+    # Insert if missing
+    unique_batch = f'{program_id}-{year_start}-{year_end}-{semester}'
+    cursor.execute("""
+        INSERT INTO enrollment_batches
+         (program_id, selected_year_start, selected_year_end, selected_semester, total_male, total_female, unique_batch, created_at, updated_at)
+         VALUES (%s,%s,%s,%s,0,0,%s,NOW(),NOW())
+    """, (program_id, year_start, year_end, semester, unique_batch))
+    return cursor.lastrowid
+
+def get_mlmodel_id(cursor, mlmodel_name):
+    cursor.execute("SELECT mlmodel_id FROM mlmodels WHERE mlmodel_name=%s", (mlmodel_name,))
+    row = cursor.fetchone()
+    if row:
+        return row[0]
+    cursor.execute("INSERT INTO mlmodels (mlmodel_name,created_at,updated_at) VALUES (%s,NOW(),NOW())", (mlmodel_name,))
+    return cursor.lastrowid
 
 
 def clip_value(value, min_value=0.0, max_value=1.0):
@@ -1182,165 +1165,38 @@ def ensure_predictions_schema(cursor):
             ADD UNIQUE KEY uk_program_year_sem_model (program_id, academic_year, semester, model_name)
         """)
 
-
-def insert_prediction_rows(cursor, pred_result, future_years, avg_male_ratio, predictions_columns):
-    """
-    Writes one row per model per (program, academic_year, semester).
-    Uses UPSERT to keep reruns deterministic.
-    Sets model_ensemble only for Ensemble rows.
-    """
-    program_id = int(pred_result['program_id'])
-    program_confidence = get_model_confidence(pred_result)
-    base_year = 2026
-    inserted_count = 0
-
-    has_model_name = 'model_name' in predictions_columns
-    has_model_ensemble = 'model_ensemble' in predictions_columns
-
-    if not has_model_name:
-        # If schema truly doesn't support model_name, you cannot safely store per-model rows.
-        # But since you want "all models displayed", we hard-fail to make the issue obvious.
-        raise RuntimeError("predictions table is missing model_name column; cannot save per-model predictions.")
-
-    model_map = {
-        'Prophet': pred_result.get('prophet'),
-        'LSTM': pred_result.get('lstm'),
-        'XGBoost': pred_result.get('xgboost'),
-        'Ensemble': pred_result.get('ensemble')
-    }
-
-    for model_name, model_result in model_map.items():
-        if not model_result or model_result.get('predictions') is None:
+def insert_predictions(cursor, pred_result, gender_ratio, base_year=2026):
+    # Insert for ALL 4 models (prophet, LSTM, XGBoost, Ensemble)
+    model_keys = ['Prophet','LSTM','XGBoost','Ensemble']
+    model_objs = [
+        pred_result.get('prophet'), pred_result.get('lstm'), pred_result.get('xgboost'), pred_result.get('ensemble')
+    ]
+    for mk, model in zip(model_keys, model_objs):
+        if not model or not model.get('predictions', None):
             continue
-
-        model_quality = get_model_quality_score(model_result)
-        if model_name == 'Ensemble':
-            row_confidence = program_confidence
-        else:
-
-            # Slight blend of per-model validation quality + overall program confidence
-            row_confidence = clip_value((0.7 * model_quality) + (0.3 * program_confidence), 0.05, 0.98)
-
-
-        predictions = model_result['predictions'][:future_years * 3]
-        forecast_semesters = build_forecast_semester_sequence(len(predictions))
-
-        for sem_offset, pred_value in enumerate(predictions):
-            sem = int(forecast_semesters[sem_offset])
-            year_offset = sem_offset // 3
-
-            academic_year = f"{base_year + year_offset}-{base_year + year_offset + 1}"
-
-            pred_total = int(max(float(pred_value), 0))
-            pred_male = int(pred_total * avg_male_ratio)
+        model_preds = model['predictions']
+        n_years = len(model_preds) // 3
+        mlmodel_id = get_mlmodel_id(cursor, mk)
+        # For every predicted semester, you need to reference batch ID
+        for i in range(len(model_preds)):
+            # Figure out which year/semester
+            year_offset = i // 3
+            semester_offset = i % 3
+            ystart = base_year + year_offset
+            yend = ystart + 1
+            semester = SEMESTER_ORDER[semester_offset]
+            batch_id = get_or_create_enrollment_batch(cursor, pred_result['program_id'], ystart, yend, semester)
+            pred_total = int(model_preds[i])
+            pred_male = int(pred_total * gender_ratio)
             pred_female = pred_total - pred_male
-
-            columns = [
-                'program_id',
-                'academic_year',
-                'semester',
-                'predicted_total',
-                'predicted_male',
-                'predicted_female',
-                'confidence',
-                'model_name'
-            ]
-            values = [
-                program_id,
-                academic_year,
-                int(sem),
-                pred_total,
-                pred_male,
-                pred_female,
-                row_confidence,
-                model_name
-            ]
-
-            # model_ensemble should describe the ensemble combination only for ensemble rows
-            if has_model_ensemble:
-                columns.append('model_ensemble')
-                values.append(ENSEMBLE_LABEL if model_name == 'Ensemble' else None)
-
-            placeholders = ', '.join(['%s'] * len(values))
-            columns_sql = ', '.join(columns)
-
-            # UPSERT to avoid duplicate key errors and ensure reruns update rows instead of failing.
-            # Note: model_name is part of the UNIQUE key so it should not be updated.
-            update_cols = [
-                'predicted_total=VALUES(predicted_total)',
-                'predicted_male=VALUES(predicted_male)',
-                'predicted_female=VALUES(predicted_female)',
-                'confidence=VALUES(confidence)'
-            ]
-            if has_model_ensemble:
-                update_cols.append('model_ensemble=VALUES(model_ensemble)')
-
-            update_sql = ", ".join(update_cols)
-
-            cursor.execute(
-                f"""
-                INSERT INTO predictions ({columns_sql})
-                VALUES ({placeholders})
-                ON DUPLICATE KEY UPDATE {update_sql}
-                """,
-                tuple(values)
-            )
-            inserted_count += 1
-
-    return inserted_count
-
-
-def save_predictions_to_db(all_predictions, future_years=1, gender_ratio_map=None):
-    print(f"\n\n{'=' * 80}")
-    print("💾 SAVING PREDICTIONS TO DATABASE")
-    print(f"{'=' * 80}")
-
-    gender_ratio_map = gender_ratio_map or {}
-
-    conn = mysql.connector.connect(**DB_CONFIG)
-    cursor = conn.cursor()
-
-    try:
-        ensure_predictions_schema(cursor)
-        predictions_columns = get_table_columns(cursor, 'predictions')
-
-        # Clear predictions for the target years (keeps retrains deterministic)
-        for year_offset in range(future_years):
-            target_year = 2026 + year_offset
-            cursor.execute("DELETE FROM predictions WHERE academic_year LIKE %s", (f"{target_year}-%",))
-
-        conn.commit()
-        print("✅ Cleared existing predictions")
-
-        inserted_count = 0
-
-        for pred_result in all_predictions:
-            if pred_result is None:
-                continue
-
-            program_id = int(pred_result['program_id'])
-            avg_male_ratio = gender_ratio_map.get(program_id, 0.5)
-
-            inserted_count += insert_prediction_rows(
-                cursor=cursor,
-                pred_result=pred_result,
-                future_years=future_years,
-                avg_male_ratio=avg_male_ratio,
-                predictions_columns=predictions_columns
-            )
-
-        conn.commit()
-        print(f"✅ Saved {inserted_count} prediction rows to database")
-
-    except Exception as e:
-        print(f"❌ Database error: {str(e)}")
-        conn.rollback()
-        raise
-
-    finally:
-        cursor.close()
-        conn.close()
-
+            confidence = float(model.get('metrics',{}).get('Confidence', 0.7))
+            cursor.execute("""
+                INSERT INTO predictions
+                 (enrollment_batch_id, predicted_total, predicted_male, predicted_female, confidence, mlmodel_id, created_at, updated_at)
+                 VALUES (%s,%s,%s,%s,%s,%s,NOW(),NOW())
+                ON DUPLICATE KEY UPDATE
+                 predicted_total=VALUES(predicted_total), predicted_male=VALUES(predicted_male), predicted_female=VALUES(predicted_female), confidence=VALUES(confidence), mlmodel_id=VALUES(mlmodel_id), updated_at=NOW()
+            """, (batch_id, pred_total, pred_male, pred_female, confidence, mlmodel_id))
 
 def save_model_metrics_to_db(all_predictions):
     print("\n💾 SAVING MODEL METRICS TO DATABASE")
@@ -1404,33 +1260,35 @@ def save_model_metrics_to_db(all_predictions):
         cursor.close()
         conn.close()
 
-
 if __name__ == "__main__":
-    total_started = time.perf_counter()
+    
+    if len(sys.argv) < 2:
+        print("Usage: python predict_and_insert.py path/to/data.xlsx")
+        sys.exit(1)
+    input_path = sys.argv[1]
+    base_year = 2026
+    future_years = 2
 
-    df_hist = load_enrollment_data()
-    if df_hist is None:
-        exit(1)
-
-    future_years = 2  # Predict for 2 years: 2026-2027 and 2027-2028
+    df_hist = load_excel_or_csv(input_path)
     gender_ratio_map = build_gender_ratio_map(df_hist)
-
     all_predictions = []
+
     for program_id in sorted(df_hist['program_id'].unique()):
         program_data = df_hist[df_hist['program_id'] == program_id].copy()
         result = predict_for_program(program_id, program_data, future_years=future_years)
-        all_predictions.append(result)
+        if result:
+            all_predictions.append(result)
 
-    save_predictions_to_db(all_predictions, future_years=future_years, gender_ratio_map=gender_ratio_map)
-    save_model_metrics_to_db(all_predictions)
+    conn = mysql.connector.connect(**DB_CONFIG)
+    cursor = conn.cursor()
+    try:
+        for pred in all_predictions:
+            ratio = gender_ratio_map.get(pred['program_id'], 0.5)
+            insert_predictions(cursor, pred, ratio, base_year=base_year)
+        conn.commit()
+        print("✅ All predictions inserted/updated in database!")
+    finally:
+        cursor.close()
+        conn.close()
 
-    successful = sum(1 for p in all_predictions if p is not None)
-if __name__ == "__main__":
-    # ... [existing code] ...
-    # At the end, summarize as JSON:
-    import json
-    result_summary = {
-        'all_predictions': all_predictions,
-        'metrics': ... # whatever summary metrics you want available
-    }
-    print(json.dumps(result_summary))
+    print(json.dumps({"predictions": all_predictions, "success": sum(1 for x in all_predictions if x)}, indent=2))

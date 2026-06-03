@@ -368,7 +368,7 @@ dashboard.head = (options?: RouteQueryOptions): RouteDefinition<'head'> => ({
     dashboard.form = dashboardForm
 /**
 * @see \App\Http\Controllers\PredictController::predict
- * @see app/Http/Controllers/PredictController.php:8
+ * @see app/Http/Controllers/PredictController.php:11
  * @route '/predict'
  */
 export const predict = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
@@ -383,7 +383,7 @@ predict.definition = {
 
 /**
 * @see \App\Http\Controllers\PredictController::predict
- * @see app/Http/Controllers/PredictController.php:8
+ * @see app/Http/Controllers/PredictController.php:11
  * @route '/predict'
  */
 predict.url = (options?: RouteQueryOptions) => {
@@ -392,7 +392,7 @@ predict.url = (options?: RouteQueryOptions) => {
 
 /**
 * @see \App\Http\Controllers\PredictController::predict
- * @see app/Http/Controllers/PredictController.php:8
+ * @see app/Http/Controllers/PredictController.php:11
  * @route '/predict'
  */
 predict.post = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
@@ -402,7 +402,7 @@ predict.post = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
 
     /**
 * @see \App\Http\Controllers\PredictController::predict
- * @see app/Http/Controllers/PredictController.php:8
+ * @see app/Http/Controllers/PredictController.php:11
  * @route '/predict'
  */
     const predictForm = (options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
@@ -412,7 +412,7 @@ predict.post = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
 
             /**
 * @see \App\Http\Controllers\PredictController::predict
- * @see app/Http/Controllers/PredictController.php:8
+ * @see app/Http/Controllers/PredictController.php:11
  * @route '/predict'
  */
         predictForm.post = (options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({

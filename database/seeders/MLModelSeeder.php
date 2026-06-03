@@ -13,7 +13,16 @@ class MLModelSeeder extends Seeder
     public function run(): void
     {
         DB::table('mlmodels')->insert([
-            'mlmodel_name'=> 'Gigi Hadid',
+            'mlmodel_name'=> 'LSTM',
+        ]);
+        DB::table('mlmodels')->insert([
+            'mlmodel_name'=> 'Prophet',
+        ]);
+        DB::table('mlmodels')->insert([
+            'mlmodel_name'=> 'XGBoost',
+        ]);
+        DB::table('mlmodels')->insert([
+            'mlmodel_name'=> 'Ensemble',
         ]);
     }
 }

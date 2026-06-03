@@ -12,6 +12,8 @@ use App\Models\Department;
 class Program extends Model
 {
     protected $primaryKey = 'program_id';
+    public $incrementing = true;
+    protected $keyType = 'int';
     protected $fillable = ['program_name', 'department_id'];
     public function department(): BelongsTo
     {

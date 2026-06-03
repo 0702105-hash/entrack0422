@@ -43,62 +43,68 @@ export default function Dashboard({
   const [trendData, setTrendData] = useState(initialTrendData)
 
   const handlePredictResults = (result: any) => {
-    // ---- Parse and transform the result into Dashboard shapes ----
-    // result.predictions: array of program objects (your Python output)
-    // We’ll do ENSEMBLE summary across all programs
+    if (!result || !Array.isArray(result.predictions)) return;
 
-    // 1. Metrics Summary
-    let total_predicted = 0, total_male = 0, total_female = 0, confidences: number[] = []
-    result.predictions?.forEach((program: any) => {
+    let total_predicted = 0;
+    let total_male = 0;
+    let total_female = 0;
+    let confidences: number[] = [];
+
+    // For Donut chart: total for each program for the first semester, future year 1
+    const progDist: ProgramDistributionItem[] = [];
+    // For trend chart: all programs, all 3 semesters
+    const trend: TrendItem[] = [];
+
+    result.predictions.forEach((program: any) => {
       const ensemble = program.ensemble;
       if (!ensemble || !ensemble.predictions) return;
-      // sum up predicted for all predicted semesters in future year 1 for this program
+      // Sum across all three semesters in first predicted year
       for (let i = 0; i < 3; ++i) {
-        total_predicted += parseInt(ensemble.predictions[i] ?? 0);
+        const semesterPred = Number(ensemble.predictions[i] ?? 0);
+        total_predicted += semesterPred;
+
+        // Gender-specific sums if available as arrays (Python script may output arrays for male/female prediction!)
+        if (Array.isArray(ensemble.predicted_male) && Array.isArray(ensemble.predicted_female)) {
+          total_male += Number(ensemble.predicted_male[i] ?? 0);
+          total_female += Number(ensemble.predicted_female[i] ?? 0);
+        }
       }
-      // Estimate gender split using predicted_male/female if you have them (optionally use your backend logic for more accuracy)
-      // For now, let's parse from the first prediction if present, otherwise estimate 50%
-      if (ensemble.predicted_male && ensemble.predicted_female) {
-        total_male += parseInt(ensemble.predicted_male[0]);
-        total_female += parseInt(ensemble.predicted_female[0]);
-      } else {
-        // fallback estimate: 50/50 split
-        total_male += Math.round(ensemble.predictions[0] * 0.5);
-        total_female += Math.round(ensemble.predictions[0] * 0.5);
-      }
-      if (ensemble.metrics?.Confidence) {
-        confidences.push(Number(ensemble.metrics.Confidence))
-      }
-    })
+      // Donut = just FIRST semester for each program
+      progDist.push({
+        name: program.program_name || ("Program " + program.program_id),
+        value: Number(ensemble.predictions[0] ?? 0),
+      });
+
+      // Confidence
+      const conf = Number(ensemble.metrics?.Confidence ?? ensemble.metrics?.confidence ?? 0);
+      if (conf) confidences.push(conf);
+
+      // Trend chart: for this program, all three future semesters
+      (ensemble.predictions || []).slice(0, 3).forEach((pred: any, i: number) => {
+        trend.push({
+          period: `${program.program_name || program.program_id} ${["First", "Second", "Summer"][i]}`,
+          predicted: Number(pred),
+          baseline: 0
+        });
+      });
+    });
+
+    // If NO gender-specific info at all, estimate from totals (fallback!)
+    if (total_male === 0 && total_female === 0 && total_predicted > 0) {
+      total_male = Math.round(total_predicted * 0.5);
+      total_female = total_predicted - total_male;
+    }
+
     setSummary({
       total_predicted,
       total_male,
       total_female,
-      avg_confidence: Math.round((confidences.reduce((a, b) => a + b, 0) / (confidences.length || 1)) * 100)
-    })
+      avg_confidence: confidences.length ? Math.round((confidences.reduce((a, b) => a + b, 0) / confidences.length) * 100) : 0
+    });
 
-    // 2. Breakdown for DonutResourcesChart (programDistribution)
-    const progDist = result.predictions?.map((program: any) => ({
-      name: program.program_name || ("Program " + program.program_id),
-      value: program.ensemble?.predictions?.[0] ?? 0     // First semester, first year only
-    })) || []
-    setProgramDistribution(progDist)
-
-    // 3. EnrollmentLineChart data (trendData)
-    const trend: TrendItem[] = []
-    result.predictions?.forEach((program: any) => {
-      const programName = program.program_name || ("Program " + program.program_id)
-      // Baseline and predicted, for each semester in future year 1
-      ;(program.ensemble?.predictions || []).slice(0, 3).forEach((pred: any, i: number) => {
-        trend.push({
-          period: `${programName} ${["First", "Second", "Summer"][i]}`,
-          predicted: Number(pred),
-          baseline: 0  // Set if you have actual historical baselines
-        })
-      })
-    })
-    setTrendData(trend)
-  }
+    setProgramDistribution(progDist);
+    setTrendData(trend);
+  };
 
   return (
     <>

@@ -8,6 +8,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class ModelMetric extends Model
 {
     protected $primaryKey = 'metric_id';
+    public $incrementing = true;
+    protected $keyType = 'int';
     protected $fillable = ['predictions_id', 'mae_value', 'rmse_value', 'mape_value', 'rsquared_value'];
 
     public function prediction(): BelongsTo

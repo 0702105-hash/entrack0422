@@ -9,6 +9,7 @@ use App\Http\Controllers\ModelMetricController;
 use App\Http\Controllers\EnrollmentBatchController;
 use App\Http\Controllers\PredictionRunController;
 use App\Http\Controllers\DashboardAnalyticsController;
+use App\Http\Controllers\EnrollmentImportController;
 
 
 Route::get('/departments/{id}', [DepartmentController::class, 'show']);
@@ -22,3 +23,5 @@ Route::get('/enrollment_pivot/{id}', [EnrollmentController::class, 'show']);
 
 Route::post('/predictions/run', [PredictionRunController::class, 'store']);
 Route::get('/dashboard/analytics', [DashboardAnalyticsController::class, 'index']);
+
+Route::post('/enrollments/import', [EnrollmentImportController::class, 'import']);

@@ -8,6 +8,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class Department extends Model
 {
     protected $primaryKey = 'department_id';
+    public $incrementing = true;
+    protected $keyType = 'int';
     protected $fillable = ['department_name'];
     public function programs(): HasMany
     {

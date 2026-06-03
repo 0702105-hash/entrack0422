@@ -1,51 +1,81 @@
-import React from 'react';
-import { Head, Link } from '@inertiajs/react';
+import React, { useState, useEffect } from 'react';
+import { Head, Link, useForm } from '@inertiajs/react';
 import PublicLayout from '@/layouts/PublicLayout';
 import Sidebar from '@/components/dashboard/Sidebar';
 import {
-  LineChart,
-  Line,
+  BarChart,
+  Bar,
   XAxis,
   YAxis,
   CartesianGrid,
   Tooltip,
-  Legend,
   ResponsiveContainer,
-  Area,
-  AreaChart,
+  Cell
 } from 'recharts';
 
 // --- Types ---
-type TrendItem = {
-  period: string;
-  baseline: number | null;
-  predicted: number | null;
+type ProgramYearlyData = {
+  program_id: number;
+  program_name: string;
+  academic_year: string;
+  predictions: {
+    Prophet: number;
+    LSTM: number;
+    XGBoost: number;
+    Ensemble: number;
+  };
 };
 
 type Props = {
-  filters: {
-    model: string;
+  programs?: ProgramYearlyData[];
+};
+
+export default function Programs({ programs = [] }: Props) {
+  // --- Hydration Fix State ---
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  const safePrograms = programs || [];
+
+  // --- Calculate Institutional Totals for the Main Chart ---
+  const mainChartData = [
+    { name: 'Prophet', value: safePrograms.reduce((sum, p) => sum + p.predictions.Prophet, 0) },
+    { name: 'LSTM', value: safePrograms.reduce((sum, p) => sum + p.predictions.LSTM, 0) },
+    { name: 'XGBoost', value: safePrograms.reduce((sum, p) => sum + p.predictions.XGBoost, 0) },
+    { name: 'Ensemble', value: safePrograms.reduce((sum, p) => sum + p.predictions.Ensemble, 0) },
+  ];
+
+  const targetAY = safePrograms.length > 0 ? safePrograms[0].academic_year : '2026-2027';
+
+  // --- CSV Import Setup ---
+  const { data, setData, post, processing, errors, progress } = useForm({
+    file: null as File | null,
+  });
+
+  const submitImport = (e: React.FormEvent) => {
+    e.preventDefault();
+    post('/programs/import-enrollments', {
+      preserveScroll: true,
+      onSuccess: () => {
+        alert('Data successfully imported!');
+        setData('file', null);
+      },
+    });
   };
-  mainTrend: TrendItem[];
-  programTrends: ProgramData[];
-};
 
-type ProgramData = {
-  program_id: number;
-  program_name: string;
-  trend: TrendItem[];
-};
-
-export default function Programs({ filters, mainTrend, programTrends }: Props) {
-  const modelLabel = filters?.model || 'Ensemble';
-  const safeMainTrend = mainTrend.length
-    ? mainTrend
-    : [
-      { period: '—', baseline: 0, predicted: 0 },
-      { period: '—', baseline: 0, predicted: 0 },
-    ];
-
-  const safeProgramTrends = programTrends ?? [];
+  // Color coding for models
+  const getBarColor = (name: string) => {
+    switch (name) {
+      case 'Ensemble': return '#10b981'; // Emerald 500
+      case 'XGBoost': return '#f59e0b';  // Amber 500
+      case 'LSTM': return '#3b82f6';     // Blue 500
+      case 'Prophet': return '#94a3b8';  // Slate 400
+      default: return '#94a3b8';
+    }
+  };
 
   return (
     <>
@@ -57,6 +87,7 @@ export default function Programs({ filters, mainTrend, programTrends }: Props) {
 
           <main className="min-w-0 flex-1">
             <div className="mt-6 flex flex-col gap-6">
+
               {/* --- HEADER --- */}
               <div className="flex flex-wrap items-center justify-between gap-4">
                 <div>
@@ -64,7 +95,7 @@ export default function Programs({ filters, mainTrend, programTrends }: Props) {
                     Department Predictions
                   </h2>
                   <p className="text-sm text-slate-500">
-                    Analyze overall institutional growth.
+                    Compare model forecasts for AY {targetAY}.
                   </p>
                 </div>
 
@@ -76,147 +107,155 @@ export default function Programs({ filters, mainTrend, programTrends }: Props) {
                 </Link>
               </div>
 
-              {/* --- MAIN CHART ONLY --- */}
+              {/* --- DATA IMPORT SECTION --- */}
+              <div className="flex flex-col md:flex-row md:items-center justify-between rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+                <div className="mb-4 md:mb-0">
+                  <h3 className="text-lg font-semibold text-slate-800">
+                    Import Historical Data
+                  </h3>
+                  <p className="text-sm text-slate-500 mt-1">
+                    Upload a CSV file containing CAS enrollment records to feed the prediction models.
+                  </p>
+                </div>
+
+                <div className="flex flex-col gap-2">
+                  <form onSubmit={submitImport} className="flex flex-col sm:flex-row items-center gap-3">
+                    <div className="w-full sm:w-auto">
+                      <input
+                        key={data.file ? 'has-file' : 'empty'} 
+                        type="file"
+                        accept=".csv"
+                        onChange={(e) => setData('file', e.target.files ? e.target.files[0] : null)}
+                        className="block w-full max-w-md text-sm text-slate-600 file:mr-4 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-slate-100 file:text-slate-700 hover:file:bg-slate-200 transition cursor-pointer"
+                      />
+                    </div>
+                    <button
+                      type="submit"
+                      disabled={processing || !data.file}
+                      className={`w-full sm:w-auto inline-flex items-center justify-center rounded-xl px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition ${processing || !data.file
+                        ? 'bg-slate-400 cursor-not-allowed'
+                        : 'bg-blue-600 hover:bg-blue-700'
+                        }`}
+                    >
+                      {processing ? 'Uploading...' : 'Upload CSV'}
+                    </button>
+                  </form>
+
+                  {/* Progress & Errors */}
+                  {progress && (
+                    <div className="w-full bg-slate-200 rounded-full h-2 mt-1">
+                      <div
+                        className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                        style={{ width: `${progress.percentage}%` }}
+                      ></div>
+                    </div>
+                  )}
+                  {errors.file && (
+                    <div className="text-sm text-red-600 font-medium">
+                      {errors.file}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* --- MAIN CHART: INSTITUTIONAL AVERAGE --- */}
               <div className="grid grid-cols-1 gap-6">
                 <div className="flex flex-col rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
                   <div className="mb-6 flex items-center justify-between">
-                    <h3 className="text-lg font-semibold text-slate-800">
-                      Overall Enrollment Trend ({modelLabel})
-                    </h3>
+                    <div>
+                      <h3 className="text-lg font-semibold text-slate-800">
+                        Total Institutional Prediction (AY {targetAY})
+                      </h3>
+                      <p className="text-sm text-slate-500">Sum of all programs compared across the 4 ML models.</p>
+                    </div>
                   </div>
 
-                  <div className="flex-1 min-h-[350px] w-full">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <AreaChart
-                        data={safeMainTrend}
-                        margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
-                      >
-                        <defs>
-                          <linearGradient
-                            id="colorPredicted"
-                            x1="0"
-                            y1="0"
-                            x2="0"
-                            y2="1"
-                          >
-                            <stop
-                              offset="5%"
-                              stopColor="#0ea5e9"
-                              stopOpacity={0.3}
-                            />
-                            <stop
-                              offset="95%"
-                              stopColor="#0ea5e9"
-                              stopOpacity={0}
-                            />
-                          </linearGradient>
-                        </defs>
-                        <CartesianGrid
-                          strokeDasharray="3 3"
-                          vertical={false}
-                          stroke="#f1f5f9"
-                        />
-                        <XAxis
-                          dataKey="period"
-                          tick={{ fill: '#64748b', fontSize: 12 }}
-                          tickLine={false}
-                          axisLine={false}
-                          dy={10}
-                        />
-                        <YAxis
-                          tick={{ fill: '#64748b', fontSize: 12 }}
-                          tickLine={false}
-                          axisLine={false}
-                        />
-                        <Tooltip
-                          contentStyle={{
-                            borderRadius: '12px',
-                            border: 'none',
-                            boxShadow:
-                              '0 10px 15px -3px rgb(0 0 0 / 0.1)',
-                          }}
-                        />
-                        <Legend
-                          verticalAlign="top"
-                          height={40}
-                          iconType="circle"
-                          wrapperStyle={{ fontSize: '13px' }}
-                        />
-
-                        <Area
-                          type="monotone"
-                          dataKey="predicted"
-                          name="AI Prediction"
-                          stroke="#0ea5e9"
-                          strokeWidth={3}
-                          fillOpacity={1}
-                          fill="url(#colorPredicted)"
-                          activeDot={{
-                            r: 6,
-                            stroke: '#0284c7',
-                            strokeWidth: 2,
-                          }}
-                        />
-                        <Line
-                          type="monotone"
-                          dataKey="baseline"
-                          name="Historical Baseline"
-                          stroke="#94a3b8"
-                          strokeWidth={2}
-                          dot={{ r: 4 }}
-                          activeDot={{ r: 6 }}
-                        />
-                      </AreaChart>
-                    </ResponsiveContainer>
+                  <div className="w-full h-[350px]">
+                    {isMounted && (
+                      <ResponsiveContainer width="100%" height="100%" minHeight={1}>
+                        <BarChart
+                          data={mainChartData}
+                          margin={{ top: 20, right: 20, left: -20, bottom: 0 }}
+                        >
+                          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                          <XAxis dataKey="name" tick={{ fill: '#64748b', fontSize: 13, fontWeight: 500 }} tickLine={false} axisLine={false} dy={10} />
+                          <YAxis tick={{ fill: '#64748b', fontSize: 12 }} tickLine={false} axisLine={false} />
+                          <Tooltip 
+                            cursor={{ fill: '#f8fafc' }} 
+                            contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)', fontWeight: 'bold' }} 
+                          />
+                          <Bar dataKey="value" radius={[6, 6, 0, 0]} barSize={80}>
+                            {mainChartData.map((entry, index) => (
+                              <Cell key={`cell-${index}`} fill={getBarColor(entry.name)} />
+                            ))}
+                          </Bar>
+                        </BarChart>
+                      </ResponsiveContainer>
+                    )}
                   </div>
                 </div>
               </div>
 
-              {/* --- BOTTOM SECTION: Individual Program Charts --- */}
+              {/* --- BOTTOM SECTION: INDIVIDUAL PROGRAM CHARTS --- */}
               <div className="mt-4">
                 <h3 className="mb-4 text-lg font-semibold text-slate-800">
                   Breakdown by Program
                 </h3>
 
                 <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                  {safeProgramTrends.map((program) => {
-                    const safeTrend =
-                      program.trend && program.trend.length
-                        ? program.trend
-                        : [
-                          { period: '—', baseline: 0, predicted: 0 },
-                          { period: '—', baseline: 0, predicted: 0 },
-                        ];
+                  {safePrograms.length === 0 ? (
+                     <div className="col-span-full py-8 text-center text-slate-500 bg-white rounded-xl border border-slate-200">
+                        No predictions generated yet.
+                     </div>
+                  ) : (
+                    safePrograms.map((program) => {
+                      // Format data for the mini chart
+                      const progData = [
+                        { name: 'Prophet', value: program.predictions.Prophet },
+                        { name: 'LSTM', value: program.predictions.LSTM },
+                        { name: 'XGBoost', value: program.predictions.XGBoost },
+                        { name: 'Ensemble', value: program.predictions.Ensemble },
+                      ];
 
-                    return (
-                      <div
-                        key={program.program_id}
-                        className="flex flex-col rounded-xl border border-slate-200 bg-white p-5 shadow-sm transition-shadow hover:shadow-md"
-                      >
-                        <h4
-                          className="mb-4 font-semibold text-slate-800 truncate"
-                          title={program.program_name}
+                      return (
+                        <div
+                          key={program.program_id}
+                          className="flex flex-col rounded-xl border border-slate-200 bg-white p-5 shadow-sm transition-shadow hover:shadow-md"
                         >
-                          {program.program_name}
-                        </h4>
+                          <h4
+                            className="mb-4 font-semibold text-slate-800 truncate"
+                            title={program.program_name}
+                          >
+                            {program.program_name}
+                          </h4>
 
-                        <div className="flex-1 min-h-[220px] w-full">
-                          <ResponsiveContainer width="100%" height="100%">
-                            <LineChart data={safeTrend} margin={{ top: 5, right: 10, left: -25, bottom: 0 }}>
-                              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                              <XAxis dataKey="period" tick={{ fill: '#94a3b8', fontSize: 10 }} tickLine={false} axisLine={false} />
-                              <YAxis tick={{ fill: '#94a3b8', fontSize: 10 }} tickLine={false} axisLine={false} />
-                              <Tooltip contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)', fontSize: '12px' }} />
-                              <Line type="monotone" dataKey="baseline" name="Actual" stroke="#94a3b8" strokeWidth={2} dot={false} activeDot={{ r: 4 }} />
-                              <Line type="monotone" dataKey="predicted" name="Predicted" stroke="#f59e0b" strokeWidth={2} dot={false} activeDot={{ r: 4 }} />
-                            </LineChart>
-                          </ResponsiveContainer>
+                          <div className="w-full h-[220px]">
+                            {isMounted && (
+                              <ResponsiveContainer width="100%" height="100%" minHeight={1}>
+                                <BarChart data={progData} margin={{ top: 5, right: 10, left: -25, bottom: 0 }}>
+                                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                                  <XAxis dataKey="name" tick={{ fill: '#94a3b8', fontSize: 10 }} tickLine={false} axisLine={false} />
+                                  <YAxis tick={{ fill: '#94a3b8', fontSize: 10 }} tickLine={false} axisLine={false} />
+                                  <Tooltip 
+                                    cursor={{ fill: '#f8fafc' }}
+                                    contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)', fontSize: '12px', padding: '4px 8px' }} 
+                                  />
+                                  <Bar dataKey="value" radius={[4, 4, 0, 0]} barSize={30}>
+                                    {progData.map((entry, index) => (
+                                      <Cell key={`cell-${index}`} fill={getBarColor(entry.name)} />
+                                    ))}
+                                  </Bar>
+                                </BarChart>
+                              </ResponsiveContainer>
+                            )}
+                          </div>
                         </div>
-                      </div>
-                    );
-                  })}
+                      );
+                    })
+                  )}
                 </div>
               </div>
+
             </div>
           </main>
         </div>

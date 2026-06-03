@@ -14,7 +14,7 @@ class DepartmentSeeder extends Seeder
     public function run(): void
     {
         DB::table('departments')->insert([
-            'department_name' => 'College of Test',
+            'department_name' => 'College of Arts and Sciences',
         ]);
     }
 }

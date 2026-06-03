@@ -9,8 +9,10 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class Enrollment extends Model
 {
     protected $primaryKey = 'enrollment_id';
+    public $incrementing = true;
+    protected $keyType = 'int';
     protected $fillable = ['program_id', 'academic_year_start', 'academic_year_end', 'semester', 'male', 'female'];
-    
+
     public function enrollmentBatches()
     {
         return $this->belongsToMany(EnrollmentBatch::class, 'enrollment_pivot', 'enrollment_id', 'enrollment_batch_id');

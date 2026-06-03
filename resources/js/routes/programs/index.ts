@@ -1,73 +1,73 @@
 import { queryParams, type RouteQueryOptions, type RouteDefinition, type RouteFormDefinition, applyUrlDefaults } from './../../wayfinder'
 /**
-* @see \App\Http\Controllers\ProgramsController::store
- * @see app/Http/Controllers/ProgramsController.php:11
+* @see \App\Http\Controllers\ProgramsController::index
+ * @see app/Http/Controllers/ProgramsController.php:12
  * @route '/programs'
  */
-export const store = (options?: RouteQueryOptions): RouteDefinition<'get'> => ({
-    url: store.url(options),
+export const index = (options?: RouteQueryOptions): RouteDefinition<'get'> => ({
+    url: index.url(options),
     method: 'get',
 })
 
-store.definition = {
+index.definition = {
     methods: ["get","head"],
     url: '/programs',
 } satisfies RouteDefinition<["get","head"]>
 
 /**
-* @see \App\Http\Controllers\ProgramsController::store
- * @see app/Http/Controllers/ProgramsController.php:11
+* @see \App\Http\Controllers\ProgramsController::index
+ * @see app/Http/Controllers/ProgramsController.php:12
  * @route '/programs'
  */
-store.url = (options?: RouteQueryOptions) => {
-    return store.definition.url + queryParams(options)
+index.url = (options?: RouteQueryOptions) => {
+    return index.definition.url + queryParams(options)
 }
 
 /**
-* @see \App\Http\Controllers\ProgramsController::store
- * @see app/Http/Controllers/ProgramsController.php:11
+* @see \App\Http\Controllers\ProgramsController::index
+ * @see app/Http/Controllers/ProgramsController.php:12
  * @route '/programs'
  */
-store.get = (options?: RouteQueryOptions): RouteDefinition<'get'> => ({
-    url: store.url(options),
+index.get = (options?: RouteQueryOptions): RouteDefinition<'get'> => ({
+    url: index.url(options),
     method: 'get',
 })
 /**
-* @see \App\Http\Controllers\ProgramsController::store
- * @see app/Http/Controllers/ProgramsController.php:11
+* @see \App\Http\Controllers\ProgramsController::index
+ * @see app/Http/Controllers/ProgramsController.php:12
  * @route '/programs'
  */
-store.head = (options?: RouteQueryOptions): RouteDefinition<'head'> => ({
-    url: store.url(options),
+index.head = (options?: RouteQueryOptions): RouteDefinition<'head'> => ({
+    url: index.url(options),
     method: 'head',
 })
 
     /**
-* @see \App\Http\Controllers\ProgramsController::store
- * @see app/Http/Controllers/ProgramsController.php:11
+* @see \App\Http\Controllers\ProgramsController::index
+ * @see app/Http/Controllers/ProgramsController.php:12
  * @route '/programs'
  */
-    const storeForm = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
-        action: store.url(options),
+    const indexForm = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
+        action: index.url(options),
         method: 'get',
     })
 
             /**
-* @see \App\Http\Controllers\ProgramsController::store
- * @see app/Http/Controllers/ProgramsController.php:11
+* @see \App\Http\Controllers\ProgramsController::index
+ * @see app/Http/Controllers/ProgramsController.php:12
  * @route '/programs'
  */
-        storeForm.get = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
-            action: store.url(options),
+        indexForm.get = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
+            action: index.url(options),
             method: 'get',
         })
             /**
-* @see \App\Http\Controllers\ProgramsController::store
- * @see app/Http/Controllers/ProgramsController.php:11
+* @see \App\Http\Controllers\ProgramsController::index
+ * @see app/Http/Controllers/ProgramsController.php:12
  * @route '/programs'
  */
-        storeForm.head = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
-            action: store.url({
+        indexForm.head = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
+            action: index.url({
                         [options?.mergeQuery ? 'mergeQuery' : 'query']: {
                             _method: 'HEAD',
                             ...(options?.query ?? options?.mergeQuery ?? {}),
@@ -76,10 +76,10 @@ store.head = (options?: RouteQueryOptions): RouteDefinition<'head'> => ({
             method: 'get',
         })
     
-    store.form = storeForm
+    index.form = indexForm
 /**
 * @see \App\Http\Controllers\ProgramsController::manage
- * @see app/Http/Controllers/ProgramsController.php:35
+ * @see app/Http/Controllers/ProgramsController.php:57
  * @route '/programs/manage'
  */
 export const manage = (options?: RouteQueryOptions): RouteDefinition<'get'> => ({
@@ -94,7 +94,7 @@ manage.definition = {
 
 /**
 * @see \App\Http\Controllers\ProgramsController::manage
- * @see app/Http/Controllers/ProgramsController.php:35
+ * @see app/Http/Controllers/ProgramsController.php:57
  * @route '/programs/manage'
  */
 manage.url = (options?: RouteQueryOptions) => {
@@ -103,7 +103,7 @@ manage.url = (options?: RouteQueryOptions) => {
 
 /**
 * @see \App\Http\Controllers\ProgramsController::manage
- * @see app/Http/Controllers/ProgramsController.php:35
+ * @see app/Http/Controllers/ProgramsController.php:57
  * @route '/programs/manage'
  */
 manage.get = (options?: RouteQueryOptions): RouteDefinition<'get'> => ({
@@ -112,7 +112,7 @@ manage.get = (options?: RouteQueryOptions): RouteDefinition<'get'> => ({
 })
 /**
 * @see \App\Http\Controllers\ProgramsController::manage
- * @see app/Http/Controllers/ProgramsController.php:35
+ * @see app/Http/Controllers/ProgramsController.php:57
  * @route '/programs/manage'
  */
 manage.head = (options?: RouteQueryOptions): RouteDefinition<'head'> => ({
@@ -122,7 +122,7 @@ manage.head = (options?: RouteQueryOptions): RouteDefinition<'head'> => ({
 
     /**
 * @see \App\Http\Controllers\ProgramsController::manage
- * @see app/Http/Controllers/ProgramsController.php:35
+ * @see app/Http/Controllers/ProgramsController.php:57
  * @route '/programs/manage'
  */
     const manageForm = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
@@ -132,7 +132,7 @@ manage.head = (options?: RouteQueryOptions): RouteDefinition<'head'> => ({
 
             /**
 * @see \App\Http\Controllers\ProgramsController::manage
- * @see app/Http/Controllers/ProgramsController.php:35
+ * @see app/Http/Controllers/ProgramsController.php:57
  * @route '/programs/manage'
  */
         manageForm.get = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
@@ -141,7 +141,7 @@ manage.head = (options?: RouteQueryOptions): RouteDefinition<'head'> => ({
         })
             /**
 * @see \App\Http\Controllers\ProgramsController::manage
- * @see app/Http/Controllers/ProgramsController.php:35
+ * @see app/Http/Controllers/ProgramsController.php:57
  * @route '/programs/manage'
  */
         manageForm.head = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
@@ -156,26 +156,81 @@ manage.head = (options?: RouteQueryOptions): RouteDefinition<'head'> => ({
     
     manage.form = manageForm
 /**
-* @see \App\Http\Controllers\ProgramsController::edit
- * @see app/Http/Controllers/ProgramsController.php:0
- * @route '/programs/{program}/edit'
+* @see \App\Http\Controllers\ProgramsController::store
+ * @see app/Http/Controllers/ProgramsController.php:68
+ * @route '/programs'
  */
-export const edit = (args: { program: string | number } | [program: string | number ] | string | number, options?: RouteQueryOptions): RouteDefinition<'get'> => ({
-    url: edit.url(args, options),
-    method: 'get',
+export const store = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
+    url: store.url(options),
+    method: 'post',
 })
 
-edit.definition = {
-    methods: ["get","head"],
-    url: '/programs/{program}/edit',
-} satisfies RouteDefinition<["get","head"]>
+store.definition = {
+    methods: ["post"],
+    url: '/programs',
+} satisfies RouteDefinition<["post"]>
 
 /**
-* @see \App\Http\Controllers\ProgramsController::edit
- * @see app/Http/Controllers/ProgramsController.php:0
- * @route '/programs/{program}/edit'
+* @see \App\Http\Controllers\ProgramsController::store
+ * @see app/Http/Controllers/ProgramsController.php:68
+ * @route '/programs'
  */
-edit.url = (args: { program: string | number } | [program: string | number ] | string | number, options?: RouteQueryOptions) => {
+store.url = (options?: RouteQueryOptions) => {
+    return store.definition.url + queryParams(options)
+}
+
+/**
+* @see \App\Http\Controllers\ProgramsController::store
+ * @see app/Http/Controllers/ProgramsController.php:68
+ * @route '/programs'
+ */
+store.post = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
+    url: store.url(options),
+    method: 'post',
+})
+
+    /**
+* @see \App\Http\Controllers\ProgramsController::store
+ * @see app/Http/Controllers/ProgramsController.php:68
+ * @route '/programs'
+ */
+    const storeForm = (options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
+        action: store.url(options),
+        method: 'post',
+    })
+
+            /**
+* @see \App\Http\Controllers\ProgramsController::store
+ * @see app/Http/Controllers/ProgramsController.php:68
+ * @route '/programs'
+ */
+        storeForm.post = (options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
+            action: store.url(options),
+            method: 'post',
+        })
+    
+    store.form = storeForm
+/**
+* @see \App\Http\Controllers\ProgramsController::update
+ * @see app/Http/Controllers/ProgramsController.php:84
+ * @route '/programs/{program}'
+ */
+export const update = (args: { program: string | number } | [program: string | number ] | string | number, options?: RouteQueryOptions): RouteDefinition<'put'> => ({
+    url: update.url(args, options),
+    method: 'put',
+})
+
+update.definition = {
+    methods: ["put"],
+    url: '/programs/{program}',
+} satisfies RouteDefinition<["put"]>
+
+/**
+* @see \App\Http\Controllers\ProgramsController::update
+ * @see app/Http/Controllers/ProgramsController.php:84
+ * @route '/programs/{program}'
+ */
+update.url = (args: { program: string | number } | [program: string | number ] | string | number, options?: RouteQueryOptions) => {
     if (typeof args === 'string' || typeof args === 'number') {
         args = { program: args }
     }
@@ -193,108 +248,6 @@ edit.url = (args: { program: string | number } | [program: string | number ] | s
                         program: args.program,
                 }
 
-    return edit.definition.url
-            .replace('{program}', parsedArgs.program.toString())
-            .replace(/\/+$/, '') + queryParams(options)
-}
-
-/**
-* @see \App\Http\Controllers\ProgramsController::edit
- * @see app/Http/Controllers/ProgramsController.php:0
- * @route '/programs/{program}/edit'
- */
-edit.get = (args: { program: string | number } | [program: string | number ] | string | number, options?: RouteQueryOptions): RouteDefinition<'get'> => ({
-    url: edit.url(args, options),
-    method: 'get',
-})
-/**
-* @see \App\Http\Controllers\ProgramsController::edit
- * @see app/Http/Controllers/ProgramsController.php:0
- * @route '/programs/{program}/edit'
- */
-edit.head = (args: { program: string | number } | [program: string | number ] | string | number, options?: RouteQueryOptions): RouteDefinition<'head'> => ({
-    url: edit.url(args, options),
-    method: 'head',
-})
-
-    /**
-* @see \App\Http\Controllers\ProgramsController::edit
- * @see app/Http/Controllers/ProgramsController.php:0
- * @route '/programs/{program}/edit'
- */
-    const editForm = (args: { program: string | number } | [program: string | number ] | string | number, options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
-        action: edit.url(args, options),
-        method: 'get',
-    })
-
-            /**
-* @see \App\Http\Controllers\ProgramsController::edit
- * @see app/Http/Controllers/ProgramsController.php:0
- * @route '/programs/{program}/edit'
- */
-        editForm.get = (args: { program: string | number } | [program: string | number ] | string | number, options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
-            action: edit.url(args, options),
-            method: 'get',
-        })
-            /**
-* @see \App\Http\Controllers\ProgramsController::edit
- * @see app/Http/Controllers/ProgramsController.php:0
- * @route '/programs/{program}/edit'
- */
-        editForm.head = (args: { program: string | number } | [program: string | number ] | string | number, options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
-            action: edit.url(args, {
-                        [options?.mergeQuery ? 'mergeQuery' : 'query']: {
-                            _method: 'HEAD',
-                            ...(options?.query ?? options?.mergeQuery ?? {}),
-                        }
-                    }),
-            method: 'get',
-        })
-    
-    edit.form = editForm
-/**
-* @see \App\Http\Controllers\ProgramsController::update
- * @see app/Http/Controllers/ProgramsController.php:74
- * @route '/programs/{program}'
- */
-export const update = (args: { program: number | { program_id: number } } | [program: number | { program_id: number } ] | number | { program_id: number }, options?: RouteQueryOptions): RouteDefinition<'put'> => ({
-    url: update.url(args, options),
-    method: 'put',
-})
-
-update.definition = {
-    methods: ["put"],
-    url: '/programs/{program}',
-} satisfies RouteDefinition<["put"]>
-
-/**
-* @see \App\Http\Controllers\ProgramsController::update
- * @see app/Http/Controllers/ProgramsController.php:74
- * @route '/programs/{program}'
- */
-update.url = (args: { program: number | { program_id: number } } | [program: number | { program_id: number } ] | number | { program_id: number }, options?: RouteQueryOptions) => {
-    if (typeof args === 'string' || typeof args === 'number') {
-        args = { program: args }
-    }
-
-            if (typeof args === 'object' && !Array.isArray(args) && 'program_id' in args) {
-            args = { program: args.program_id }
-        }
-    
-    if (Array.isArray(args)) {
-        args = {
-                    program: args[0],
-                }
-    }
-
-    args = applyUrlDefaults(args)
-
-    const parsedArgs = {
-                        program: typeof args.program === 'object'
-                ? args.program.program_id
-                : args.program,
-                }
-
     return update.definition.url
             .replace('{program}', parsedArgs.program.toString())
             .replace(/\/+$/, '') + queryParams(options)
@@ -302,20 +255,20 @@ update.url = (args: { program: number | { program_id: number } } | [program: num
 
 /**
 * @see \App\Http\Controllers\ProgramsController::update
- * @see app/Http/Controllers/ProgramsController.php:74
+ * @see app/Http/Controllers/ProgramsController.php:84
  * @route '/programs/{program}'
  */
-update.put = (args: { program: number | { program_id: number } } | [program: number | { program_id: number } ] | number | { program_id: number }, options?: RouteQueryOptions): RouteDefinition<'put'> => ({
+update.put = (args: { program: string | number } | [program: string | number ] | string | number, options?: RouteQueryOptions): RouteDefinition<'put'> => ({
     url: update.url(args, options),
     method: 'put',
 })
 
     /**
 * @see \App\Http\Controllers\ProgramsController::update
- * @see app/Http/Controllers/ProgramsController.php:74
+ * @see app/Http/Controllers/ProgramsController.php:84
  * @route '/programs/{program}'
  */
-    const updateForm = (args: { program: number | { program_id: number } } | [program: number | { program_id: number } ] | number | { program_id: number }, options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
+    const updateForm = (args: { program: string | number } | [program: string | number ] | string | number, options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
         action: update.url(args, {
                     [options?.mergeQuery ? 'mergeQuery' : 'query']: {
                         _method: 'PUT',
@@ -327,10 +280,10 @@ update.put = (args: { program: number | { program_id: number } } | [program: num
 
             /**
 * @see \App\Http\Controllers\ProgramsController::update
- * @see app/Http/Controllers/ProgramsController.php:74
+ * @see app/Http/Controllers/ProgramsController.php:84
  * @route '/programs/{program}'
  */
-        updateForm.put = (args: { program: number | { program_id: number } } | [program: number | { program_id: number } ] | number | { program_id: number }, options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
+        updateForm.put = (args: { program: string | number } | [program: string | number ] | string | number, options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
             action: update.url(args, {
                         [options?.mergeQuery ? 'mergeQuery' : 'query']: {
                             _method: 'PUT',
@@ -343,10 +296,10 @@ update.put = (args: { program: number | { program_id: number } } | [program: num
     update.form = updateForm
 /**
 * @see \App\Http\Controllers\ProgramsController::destroy
- * @see app/Http/Controllers/ProgramsController.php:95
+ * @see app/Http/Controllers/ProgramsController.php:100
  * @route '/programs/{program}'
  */
-export const destroy = (args: { program: number | { program_id: number } } | [program: number | { program_id: number } ] | number | { program_id: number }, options?: RouteQueryOptions): RouteDefinition<'delete'> => ({
+export const destroy = (args: { program: string | number } | [program: string | number ] | string | number, options?: RouteQueryOptions): RouteDefinition<'delete'> => ({
     url: destroy.url(args, options),
     method: 'delete',
 })
@@ -358,17 +311,14 @@ destroy.definition = {
 
 /**
 * @see \App\Http\Controllers\ProgramsController::destroy
- * @see app/Http/Controllers/ProgramsController.php:95
+ * @see app/Http/Controllers/ProgramsController.php:100
  * @route '/programs/{program}'
  */
-destroy.url = (args: { program: number | { program_id: number } } | [program: number | { program_id: number } ] | number | { program_id: number }, options?: RouteQueryOptions) => {
+destroy.url = (args: { program: string | number } | [program: string | number ] | string | number, options?: RouteQueryOptions) => {
     if (typeof args === 'string' || typeof args === 'number') {
         args = { program: args }
     }
 
-            if (typeof args === 'object' && !Array.isArray(args) && 'program_id' in args) {
-            args = { program: args.program_id }
-        }
     
     if (Array.isArray(args)) {
         args = {
@@ -379,9 +329,7 @@ destroy.url = (args: { program: number | { program_id: number } } | [program: nu
     args = applyUrlDefaults(args)
 
     const parsedArgs = {
-                        program: typeof args.program === 'object'
-                ? args.program.program_id
-                : args.program,
+                        program: args.program,
                 }
 
     return destroy.definition.url
@@ -391,20 +339,20 @@ destroy.url = (args: { program: number | { program_id: number } } | [program: nu
 
 /**
 * @see \App\Http\Controllers\ProgramsController::destroy
- * @see app/Http/Controllers/ProgramsController.php:95
+ * @see app/Http/Controllers/ProgramsController.php:100
  * @route '/programs/{program}'
  */
-destroy.delete = (args: { program: number | { program_id: number } } | [program: number | { program_id: number } ] | number | { program_id: number }, options?: RouteQueryOptions): RouteDefinition<'delete'> => ({
+destroy.delete = (args: { program: string | number } | [program: string | number ] | string | number, options?: RouteQueryOptions): RouteDefinition<'delete'> => ({
     url: destroy.url(args, options),
     method: 'delete',
 })
 
     /**
 * @see \App\Http\Controllers\ProgramsController::destroy
- * @see app/Http/Controllers/ProgramsController.php:95
+ * @see app/Http/Controllers/ProgramsController.php:100
  * @route '/programs/{program}'
  */
-    const destroyForm = (args: { program: number | { program_id: number } } | [program: number | { program_id: number } ] | number | { program_id: number }, options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
+    const destroyForm = (args: { program: string | number } | [program: string | number ] | string | number, options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
         action: destroy.url(args, {
                     [options?.mergeQuery ? 'mergeQuery' : 'query']: {
                         _method: 'DELETE',
@@ -416,10 +364,10 @@ destroy.delete = (args: { program: number | { program_id: number } } | [program:
 
             /**
 * @see \App\Http\Controllers\ProgramsController::destroy
- * @see app/Http/Controllers/ProgramsController.php:95
+ * @see app/Http/Controllers/ProgramsController.php:100
  * @route '/programs/{program}'
  */
-        destroyForm.delete = (args: { program: number | { program_id: number } } | [program: number | { program_id: number } ] | number | { program_id: number }, options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
+        destroyForm.delete = (args: { program: string | number } | [program: string | number ] | string | number, options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
             action: destroy.url(args, {
                         [options?.mergeQuery ? 'mergeQuery' : 'query']: {
                             _method: 'DELETE',
@@ -431,9 +379,9 @@ destroy.delete = (args: { program: number | { program_id: number } } | [program:
     
     destroy.form = destroyForm
 const programs = {
-    store: Object.assign(store, store),
+    index: Object.assign(index, index),
 manage: Object.assign(manage, manage),
-edit: Object.assign(edit, edit),
+store: Object.assign(store, store),
 update: Object.assign(update, update),
 destroy: Object.assign(destroy, destroy),
 }

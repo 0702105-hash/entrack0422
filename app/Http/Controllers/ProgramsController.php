@@ -5,105 +5,102 @@ namespace App\Http\Controllers;
 use App\Models\Program;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
+use Illuminate\Support\Facades\DB;
 
 class ProgramsController extends Controller
 {
     public function index()
     {
-        $userDeptId = auth()->user()?->department_id;
+        // Define the target Academic Year
+        $nextAYStart = 2026;
+        $nextAYEnd = 2027;
 
-        $programTrends = Program::query()
-            ->select('program_id', 'program_name')
-            ->when($userDeptId, fn ($q) => $q->where('department_id', $userDeptId)) // ✅ scoped only if user has dept
-            ->orderBy('program_name')
-            ->get()
-            ->map(fn ($p) => [
-                'program_id' => $p->program_id,
-                'program_name' => $p->program_name,
-                'trend' => [],
-            ]);
+        $programs = DB::table('programs')->get();
 
-        return Inertia::render('Programs', [
-            'filters' => [
-                'model' => request('model', 'Ensemble'),
-            ],
-            'mainTrend' => [],
-            'programTrends' => $programTrends,
-        ]);
-    }
-
-    public function manage()
-    {
-        $userDeptId = auth()->user()?->department_id;
-
-        $programs = Program::query()
-            ->leftJoin('departments', 'departments.department_id', '=', 'programs.department_id')
-            ->select([
-                'programs.program_id',
-                'programs.program_name',
-                'programs.department_id',
-                'departments.department_name',
-            ])
-            ->when($userDeptId, fn ($q) => $q->where('programs.department_id', $userDeptId)) // ✅ admin sees all
-            ->orderBy('programs.program_name')
+        // Query the total yearly predictions for each program & model
+        $yearlyPredictions = DB::table('predictions')
+            ->join('enrollment_batches', 'predictions.enrollment_batch_id', '=', 'enrollment_batches.enrollment_batch_id')
+            ->join('mlmodels', 'predictions.mlmodel_id', '=', 'mlmodels.mlmodel_id')
+            ->where('enrollment_batches.selected_year_start', $nextAYStart)
+            ->select(
+                'enrollment_batches.program_id',
+                'mlmodels.mlmodel_name',
+                DB::raw('SUM(predictions.predicted_total) as yearly_total')
+            )
+            ->groupBy('enrollment_batches.program_id', 'mlmodels.mlmodel_name')
             ->get();
 
+        // Format the data into an easy-to-read array for the frontend table
+        $programsData = $programs->map(function ($program) use ($yearlyPredictions, $nextAYStart, $nextAYEnd) {
+
+            // Filter predictions belonging to this specific program
+            $progPreds = $yearlyPredictions->where('program_id', $program->program_id);
+
+            return [
+                'program_id' => $program->program_id,
+                'program_name' => $program->program_name,
+                'academic_year' => "$nextAYStart-$nextAYEnd",
+                // Extract the sum for each model
+                'predictions' => [
+                    'Prophet' => (int) ($progPreds->where('mlmodel_name', 'Prophet')->first()->yearly_total ?? 0),
+                    'LSTM' => (int) ($progPreds->where('mlmodel_name', 'LSTM')->first()->yearly_total ?? 0),
+                    'XGBoost' => (int) ($progPreds->where('mlmodel_name', 'XGBoost')->first()->yearly_total ?? 0),
+                    'Ensemble' => (int) ($progPreds->where('mlmodel_name', 'Ensemble')->first()->yearly_total ?? 0),
+                ]
+            ];
+        });
+
+        return Inertia::render('Programs', [
+            'programs' => $programsData
+        ]);
+    }
+    public function manage()
+    {
+        // Fetch all programs to pass to your React component
+        $programs = DB::table('programs')->get();
+
         return Inertia::render('ProgramsManage', [
-            'programs' => $programs,
+            'programs' => $programs
         ]);
     }
 
+    // 2. Create a new program (Handles POST /programs)
     public function store(Request $request)
     {
-        $userDeptId = auth()->user()?->department_id;
-
-        $data = $request->validate([
-            'program_name' => ['required', 'string', 'max:255', 'unique:programs,program_name'],
+        $request->validate([
+            'program_name' => 'required|string|max:255|unique:programs,program_name',
         ]);
 
-        // ✅ admin (no dept) must choose? For now, allow null department_id
-        Program::create([
-            'program_name' => $data['program_name'],
-            'department_id' => $userDeptId, // null = admin‑created (global)
+        DB::table('programs')->insert([
+            'program_name' => $request->program_name,
+            'department_id' => 1,
         ]);
 
-        return redirect()->route('programs.manage')
-            ->with('success', 'Program created.');
+        // Returns back to the page, Inertia automatically updates the table!
+        return back()->with('success', 'Program created successfully.');
     }
 
-    public function update(Request $request, Program $program)
+    // 3. Update an existing program (Handles PUT /programs/{id})
+    public function update(Request $request, $id)
     {
-        $userDeptId = auth()->user()?->department_id;
-
-        // ✅ allow admin (null dept) OR same department
-        if ($userDeptId && $program->department_id !== $userDeptId) {
-            abort(403);
-        }
-
-        $data = $request->validate([
-            'program_name' => ['required', 'string', 'max:255', 'unique:programs,program_name,' . $program->program_id . ',program_id'],
+        $request->validate([
+            // Ensure the name is unique, but ignore the current program's ID
+            'program_name' => 'required|string|max:255|unique:programs,program_name,' . $id . ',program_id',
         ]);
 
-        $program->update([
-            'program_name' => $data['program_name'],
-        ]);
+        DB::table('programs')
+            ->where('program_id', $id)
+            ->update([
+                'program_name' => $request->program_name
+            ]);
 
-        return redirect()->route('programs.manage')
-            ->with('success', 'Program updated.');
+        return back()->with('success', 'Program updated successfully.');
     }
 
-    public function destroy(Program $program)
+    public function destroy($id)
     {
-        $userDeptId = auth()->user()?->department_id;
+        DB::table('programs')->where('program_id', $id)->delete();
 
-        // ✅ allow admin (null dept) OR same department
-        if ($userDeptId && $program->department_id !== $userDeptId) {
-            abort(403);
-        }
-
-        $program->delete();
-
-        return redirect()->route('programs.manage')
-            ->with('success', 'Program deleted.');
+        return back()->with('success', 'Program deleted successfully.');
     }
 }

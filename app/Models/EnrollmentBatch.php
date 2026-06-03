@@ -9,6 +9,8 @@ class EnrollmentBatch extends Model
 {
     protected $table = 'enrollment_batches';
     protected $primaryKey = 'enrollment_batch_id';
+    public $incrementing = true;
+    protected $keyType = 'int';
     protected $fillable = ['program_id', 'selected_year_start', 'selected_year_end', 'selected_semester', 'total_male', 'total_female'];
 
     public function enrollment()

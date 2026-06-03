@@ -1,4 +1,5 @@
 import os
+import argparse
 import time
 import warnings
 
@@ -13,7 +14,7 @@ os.environ.setdefault('TF_CPP_MIN_LOG_LEVEL', '2')
 os.environ.setdefault('TF_ENABLE_ONEDNN_OPTS', '0')
 
 from prophet import Prophet
-from .prediction_config import PROPHET_CONFIG
+from prediction_config import PROPHET_CONFIG
 from sklearn.compose import TransformedTargetRegressor
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 from sklearn.pipeline import Pipeline
@@ -24,8 +25,10 @@ from tensorflow.keras.layers import LSTM, Dense, Dropout
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.optimizers import Adam
 from xgboost import XGBRegressor
+from dotenv import load_dotenv
 
 tf.get_logger().setLevel('ERROR')
+load_dotenv(dotenv_path='../.env')
 
 print("=" * 80)
 print("MULTI-MODEL ENROLLMENT PREDICTION SYSTEM (2026-2027 & 2027-2028)")
@@ -34,8 +37,8 @@ print("=" * 80)
 
 DB_CONFIG = {
     "host": os.getenv("ML_DB_HOST", "127.0.0.1"),
-    "user": os.getenv("ML_DB_USER", "root"),
-    "password": os.getenv("ML_DB_PASSWORD", ""),
+    "user": os.getenv("ML_DB_USER", "entrack_user"),
+    "password": os.getenv("ML_DB_PASSWORD", "entrack123"),
     "database": os.getenv("ML_DB_NAME", "entrack"),
     "port": int(os.getenv("ML_DB_PORT", "3306"))
 }
@@ -1171,18 +1174,22 @@ def extract_metrics(model_result):
     }
 
 def clear_existing_predictions(cursor, year_start, year_end):
-    cursor.execute("""
-        SELECT p.predictions_id
-        FROM predictions p
-        JOIN enrollment_batches b ON p.enrollment_batch_id = b.enrollment_batch_id
-        WHERE b.selected_year_start = %s AND b.selected_year_end = %s
-    """, (year_start, year_end))
-    ids = [row[0] for row in cursor.fetchall()]
-
-    if ids:
-        format_ids = ",".join(["%s"] * len(ids))
-        cursor.execute(f"DELETE FROM model_metrics WHERE predictions_id IN ({format_ids})", ids)
-        cursor.execute(f"DELETE FROM predictions WHERE predictions_id IN ({format_ids})", ids)
+    try:
+        # Disable checks
+        cursor.execute("SET FOREIGN_KEY_CHECKS = 0")
+        
+        # Truncate tables instead of DELETE (faster and resets IDs)
+        cursor.execute("TRUNCATE TABLE model_metrics")
+        cursor.execute("TRUNCATE TABLE predictions")
+        
+        # Re-enable checks
+        cursor.execute("SET FOREIGN_KEY_CHECKS = 1")
+        print("✅ Tables cleared.")
+        
+    except Exception as e:
+        cursor.execute("SET FOREIGN_KEY_CHECKS = 1")
+        print(f"❌ Error clearing tables: {e}")
+        raise e
 
 def save_predictions_to_db(all_predictions, future_years=1, base_year=2026, gender_ratio_map=None):
     gender_ratio_map = gender_ratio_map or {}
@@ -1275,31 +1282,45 @@ def save_predictions_to_db(all_predictions, future_years=1, base_year=2026, gend
     finally:
         cursor.close()
         conn.close()
-    
+        
 if __name__ == "__main__":
     total_started = time.perf_counter()
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--base-year", type=int, default=2026)
+    parser.add_argument("--future-years", type=int, default=1)
+    args = parser.parse_args()
+
+    DB_CONFIG["host"] = os.getenv("DB_HOST", DB_CONFIG.get("host", "localhost"))
+    DB_CONFIG["user"] = os.getenv("DB_USERNAME", DB_CONFIG.get("user", "root"))
+    DB_CONFIG["password"] = os.getenv("DB_PASSWORD", DB_CONFIG.get("password", "entrack123"))
+    DB_CONFIG["database"] = os.getenv("DB_DATABASE", DB_CONFIG.get("database", "entrack"))
+
+    future_years = args.future_years
+    base_year = args.base_year
 
     df_hist = load_enrollment_data()
     if df_hist is None:
         exit(1)
 
-    future_years = 1
-    base_year = 2026
     gender_ratio_map = build_gender_ratio_map(df_hist)
 
     all_predictions = []
     for program_id in sorted(df_hist['program_id'].unique()):
         program_data = df_hist[df_hist['program_id'] == program_id].copy()
         result = predict_for_program(program_id, program_data, future_years=future_years)
-        all_predictions.append(result)
-
-    save_predictions_to_db(
-        all_predictions,
-        future_years=future_years,
-        base_year=base_year,
-        gender_ratio_map=gender_ratio_map
-    )
-
-    successful = sum(1 for p in all_predictions if p is not None)
-    print(f"\n✅ {successful}/{len(all_predictions)} programs processed successfully")
-    print(f"⏱️ Total runtime: {time.perf_counter() - total_started:.2f}s")
+        if result:
+            all_predictions.append(result)
+        
+    if all_predictions:
+        save_predictions_to_db(
+            all_predictions,
+            future_years=future_years,
+            base_year=base_year,
+            gender_ratio_map=gender_ratio_map
+        )
+    else:
+        print("❌ No predictions were generated to save.")
+        
+    total_elapsed = time.perf_counter() - total_started
+    print(f"✅ Total retrain time: {total_elapsed:.2f}s")

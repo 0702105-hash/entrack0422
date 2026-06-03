@@ -9,6 +9,8 @@ class MLModel extends Model
 {
     protected $table = 'mlmodels';
     protected $primaryKey = 'mlmodel_id';
+    public $incrementing = true;
+    protected $keyType = 'int';
     protected $fillable = ['mlmodel_name'];
 
     public function predictions(): HasMany
