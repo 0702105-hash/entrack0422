@@ -112,6 +112,7 @@ class PredictionController extends Controller
     public function predict(Request $request)
     {
         try {
+            // 1. Get the years
             $yearStart = (int) $request->input('year_start', date('Y'));
             $yearEnd = (int) $request->input('year_end', date('Y') + 1);
 
@@ -121,30 +122,43 @@ class PredictionController extends Controller
 
             $futureYears = $yearEnd - $yearStart;
 
-            // The magic fix: We chain the activate command WITH the python command
-            $activateScript = 'C:\entrack\.venv-ml\Scripts\activate.bat';
-            $pythonScript = 'C:\entrack\python-service\app\train_multi_models.py';
-           
-            $cmdPath = 'C:\Windows\System32\cmd.exe';
-            $command = sprintf(
-                '%s /c "%s && python %s --base-year %d --future-years %d"',
-                $cmdPath,
-                $activateScript,
-                $pythonScript,
-                $yearStart,
-                $futureYears
-            );
+            // 2. Absolute Paths
+            $pythonBin = 'C:\entrack\.venv-ml\Scripts\python.exe';
+            $scriptPath = 'C:\entrack\python-service\app\train_multi_models.py';
 
-            Log::info("Running Command: " . $command);
+            $command = [
+                $pythonBin,
+                $scriptPath,
+                '--base-year',
+                (string) $yearStart,
+                '--future-years',
+                (string) $futureYears
+            ];
 
-            // Use fromShellCommandline to execute the entire bat chain
-            $process = \Symfony\Component\Process\Process::fromShellCommandline($command);
+            // ==========================================
+            // THE WINDOWS BRUTE-FORCE FIX
+            // We explicitly give Python the core Windows system paths.
+            // Without these, Scikit-Learn's C++ components crash.
+            // ==========================================
+            $env = [
+                'VIRTUAL_ENV' => 'C:\entrack\.venv-ml',
+                'PATH' => 'C:\entrack\.venv-ml\Scripts;C:\Windows\System32;C:\Windows;C:\Windows\System32\Wbem',
+                'SystemRoot' => 'C:\Windows',
+                'SystemDrive' => 'C:',
+                'TEMP' => 'C:\Windows\Temp',
+                'TMP' => 'C:\Windows\Temp',
+            ];
+
+            Log::info("Running Target Prediction Engine...");
+
+            // 3. Execute using the brute-forced environment
+            $process = new \Symfony\Component\Process\Process($command, null, $env);
             $process->setTimeout(600); // 10 minutes max
             $process->run();
 
             if (!$process->isSuccessful()) {
                 $error = $process->getErrorOutput() ?: $process->getOutput();
-                return back()->withErrors(['prediction' => 'PYTHON FAILED: ' . substr($error, 0, 400)]);
+                return back()->withErrors(['prediction' => 'PYTHON FAILED: ' . substr($error, 0, 500)]);
             }
 
             return redirect()->route('predictions.index')->with('success', 'Forecast generated successfully!');

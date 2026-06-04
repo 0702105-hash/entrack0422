@@ -26,8 +26,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     
     // Prediction Routes
     Route::get('/predictions', [PredictionController::class, 'index'])->name('predictions.index');
-    //Route::post('/predict', [PredictController::class, 'predict'])->name('predict'); // Use PredictController
-    Route::post('/predict', [PredictionController::class, 'predict'])->name('predict.run'); // Use PredictController
+    Route::post('/predict', [PredictController::class, 'predict'])->name('predict.run'); // Use PredictController
+    //Route::post('/predict', [PredictionController::class, 'predict'])->name('predict.run'); // Use PredictController
     Route::post('/predictions/retrain', [PredictionRetrainController::class, 'retrain'])->name('predictions.retrain');
     
     // Import Route
