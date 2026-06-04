@@ -5,7 +5,8 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
-
+use Symfony\Component\Process\Process;
+use Illuminate\Support\Facades\Log;
 class PredictionController extends Controller
 {
     public function index(Request $request)
@@ -45,9 +46,11 @@ class PredictionController extends Controller
         } else {
             $query->where('mlmodels.mlmodel_name', 'Ensemble'); // Default to Ensemble
         }
-        if ($request->filled('academic_year')) {
-            $yearStart = explode('-', $request->academic_year)[0];
-            $query->where('enrollment_batches.selected_year_start', $yearStart);
+        if ($request->filled('year_start')) {
+            $query->where('enrollment_batches.selected_year_start', '>=', $request->year_start);
+        }
+        if ($request->filled('year_end')) {
+            $query->where('enrollment_batches.selected_year_end', '<=', $request->year_end);
         }
 
         $rawPredictions = $query->get();
@@ -87,7 +90,7 @@ class PredictionController extends Controller
                 $mainTrendMap[$t['period']] += $t['predicted'];
             }
         }
-        
+
         $mainTrend = [];
         foreach (['First', 'Second', 'Summer'] as $sem) {
             $mainTrend[] = [
@@ -105,5 +108,44 @@ class PredictionController extends Controller
             'mainTrend' => $mainTrend,
             'filters' => request()->only(['model', 'academic_year', 'program_id'])
         ]);
+    }
+    public function predict(Request $request)
+    {
+        $validated = $request->validate([
+            'year_start' => 'required|integer',
+            'year_end' => 'required|integer|gt:year_start',
+        ]);
+
+        $futureYears = $validated['year_end'] - $validated['year_start'];
+        $scriptPath = base_path('python-service/app/train_multi_models.py');
+        $pythonBin = env('ML_PYTHON_BIN', 'C:\entrack\.venv-ml\Scripts\python.exe');
+
+        $command = [
+            $pythonBin,
+            $scriptPath,
+            '--base-year',
+            (string) $validated['year_start'],
+            '--future-years',
+            (string) $futureYears
+        ];
+
+        // Log the exact command
+        Log::info("Running command: " . implode(' ', $command));
+
+        $process = new Process($command);
+        $process->setTimeout(600); // 10 minutes
+        $process->run();
+
+        if (!$process->isSuccessful()) {
+            $error = $process->getErrorOutput();
+            Log::error("Process failed: " . $error);
+
+            // This will show up in your React "ML Engine Failed" alert
+            return back()->withErrors([
+                'prediction' => 'Command: ' . $pythonBin . ' | Error: ' . substr($error, 0, 150)
+            ]);
+        }
+
+        return redirect()->route('predictions.index')->with('success', 'Prediction updated.');
     }
 }

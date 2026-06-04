@@ -8,6 +8,7 @@ use App\Http\Controllers\PredictController; // Ensure logic is here
 use App\Http\Controllers\PredictionController; // Ensure view logic is here
 use App\Http\Controllers\PredictionRetrainController;
 use App\Http\Controllers\EnrollmentImportController;
+use App\Http\Controllers\AuthController;
 
 Route::inertia('/', 'welcome', [
     'canRegister' => Features::enabled(Features::registration()),
@@ -30,7 +31,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     
     // Import Route
     Route::post('/programs/import-enrollments', [EnrollmentImportController::class, 'store'])->name('enrollments.import');
-    
+    Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 });
 
 // Debug route
