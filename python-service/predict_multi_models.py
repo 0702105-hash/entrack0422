@@ -9,7 +9,6 @@ import numpy as np
 import pandas as pd
 import mysql.connector
 
-from prophet import Prophet
 from prediction_config import PROPHET_CONFIG
 from sklearn.compose import TransformedTargetRegressor
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
@@ -58,7 +57,7 @@ PROGRAM_NAMES = {
     8: 'BS Social Work'
 }
 SEMESTER_MONTH_MAP = {1: 8, 2: 1, 3: 6}
-ENSEMBLE_LABEL = "Prophet+LSTM+XGBoost"
+ENSEMBLE_LABEL = "LSTM+XGBoost"
 PROPHET_FREQ='4MS'
 CONFIDENCE_MIN = 0.05
 CONFIDENCE_MAX = 0.98
@@ -279,106 +278,6 @@ class ModelEvaluator:
         print(f"\n   📊 {model_name} Evaluation Metrics:")
         for key, value in metrics.items():
             print(f"      {key:<16}: {value}")
-
-
-class ProphetPredictor:
-    def __init__(self, yearly_seasonality=PROPHET_CONFIG.get('yearly_seasonality', False), weekly_seasonality=PROPHET_CONFIG.get('weekly_seasonality', False), use_custom_seasonality=PROPHET_CONFIG.get('use_custom_seasonality', True)):
-        self.yearly_seasonality = yearly_seasonality
-        self.weekly_seasonality = weekly_seasonality
-        self.use_custom_seasonality = use_custom_seasonality
-        self.model = None
-        self.metrics = {}
-        self.validation_actual = None
-        self.validation_predictions = None
-
-    def _build_model(self, use_custom_seasonality=None):
-        model = Prophet(
-            yearly_seasonality=self.yearly_seasonality,
-            weekly_seasonality=self.weekly_seasonality,
-            interval_width=float(PROPHET_CONFIG.get('interval_width', 0.99)),
-            changepoint_prior_scale=float(PROPHET_CONFIG.get('changepoint_prior_scale', 0.05)),
-            seasonality_mode=PROPHET_CONFIG.get('seasonality_mode', 'additive'),
-            seasonality_prior_scale=float(PROPHET_CONFIG.get('seasonality_prior_scale', 10.0))
-        )
-
-        if use_custom_seasonality is None:
-            use_custom_seasonality = self.use_custom_seasonality
-
-        if use_custom_seasonality:
-            model.add_seasonality(
-                name=PROPHET_CUSTOM_SEASONALITY['name'],
-                period=PROPHET_CUSTOM_SEASONALITY['period'],
-                fourier_order=PROPHET_CUSTOM_SEASONALITY['fourier_order'],
-                prior_scale=PROPHET_CUSTOM_SEASONALITY['prior_scale']
-            )
-
-        return model
-
-    def prepare_data(self, values):
-        return pd.DataFrame({
-            'ds': pd.date_range(start='2015-08-01', periods=len(values), freq=PROPHET_FREQ),
-            'y': values
-        })
-
-    def train(self, y_train, y_test):
-        print("      🔧 Training Prophet model...")
-        try:
-            train_df = self.prepare_data(y_train)
-            try:
-                self.model = self._build_model(use_custom_seasonality=self.use_custom_seasonality)
-                self.model.fit(train_df)
-            except ValueError as fit_error:
-                if self.use_custom_seasonality and 'duplicate labels' in str(fit_error).lower():
-                    print("      ⚠️  Prophet custom seasonality triggered duplicate-label reindexing; retrying without it")
-                    self.model = self._build_model(use_custom_seasonality=False)
-                    self.model.fit(train_df)
-                else:
-                    raise
-
-            future = self.model.make_future_dataframe(periods=len(y_test), freq=PROPHET_FREQ)
-            forecast = self.model.predict(future)
-            predictions = forecast['yhat'].tail(len(y_test)).values
-
-            self.validation_actual = np.array(y_test, dtype=float)
-            self.validation_predictions = np.array(predictions, dtype=float)
-
-            self.metrics = ModelEvaluator.calculate_metrics(y_test, predictions)
-
-            mask = np.array(y_test) != 0
-            if mask.any():
-                mdape = np.median(
-                    np.abs((np.array(y_test)[mask] - predictions[mask]) / np.array(y_test)[mask])
-                ) * 100
-                self.metrics['MdAPE'] = round(float(mdape), 2) if is_valid_metric_value(mdape) else np.nan
-            else:
-                self.metrics['MdAPE'] = np.nan
-
-            return True
-        except Exception as e:
-            print(f"      ❌ Prophet training error: {str(e)}")
-            return False
-
-    def predict(self, steps=1):
-        if self.model is None:
-            return None
-
-        try:
-            future = self.model.make_future_dataframe(periods=steps, freq=PROPHET_FREQ)
-            forecast = self.model.predict(future)
-
-            predictions = forecast['yhat'].tail(steps).values
-            lower_ci = forecast['yhat_lower'].tail(steps).values
-            upper_ci = forecast['yhat_upper'].tail(steps).values
-
-            return {
-                'predictions': np.maximum(predictions, 0),
-                'lower_ci': np.maximum(lower_ci, 0),
-                'upper_ci': np.maximum(upper_ci, 0),
-                'metrics': self.metrics
-            }
-        except Exception as e:
-            print(f"      ❌ Prophet prediction error: {str(e)}")
-            return None
 
 
 class LSTMPredictor:
@@ -880,7 +779,7 @@ def calculate_ensemble_weights(model_outputs):
 def get_prediction_stability(pred_result):
     first_step_predictions = []
 
-    for key in ['prophet', 'lstm', 'xgboost']:
+    for key in ['lstm', 'xgboost']:
         model_result = pred_result.get(key)
         if not model_result or model_result.get('predictions') is None:
             continue
@@ -905,7 +804,7 @@ def get_prediction_stability(pred_result):
 def get_model_confidence(pred_result):
     quality_scores = []
 
-    for key in ['prophet', 'lstm', 'xgboost']:
+    for key in ['lstm', 'xgboost']:
         model_result = pred_result.get(key)
         if model_result and model_result.get('metrics'):
             quality_scores.append(get_model_quality_score(model_result))
@@ -952,13 +851,6 @@ def predict_for_program(program_id, program_data, future_years=1):
     steps = future_years * 3
     forecast_semesters = build_forecast_semester_sequence(steps)
 
-    print("\n   🔮 MODEL 1: Facebook Prophet")
-    prophet_predictor = ProphetPredictor()
-    prophet_success = prophet_predictor.train(y_train, y_test)
-    prophet_pred = prophet_predictor.predict(steps=steps) if prophet_success else None
-    if prophet_pred and prophet_pred.get('metrics'):
-        ModelEvaluator.print_metrics(prophet_pred['metrics'], "Prophet")
-
     print("\n   🔮 MODEL 2: LSTM (Neural Network)")
     lstm_seq_len = min(4, max(2, len(y_train) // 5 if len(y_train) >= 5 else 2))
     lstm_units = 16 if len(y_train) < 20 else 24
@@ -977,7 +869,6 @@ def predict_for_program(program_id, program_data, future_years=1):
         ModelEvaluator.print_metrics(xgb_pred['metrics'], "XGBoost")
 
     model_outputs = [
-        ('prophet', prophet_pred),
         ('lstm', lstm_pred),
         ('xgboost', xgb_pred)
     ]
@@ -1004,7 +895,6 @@ def predict_for_program(program_id, program_data, future_years=1):
     print(f"   ⚖️ Ensemble weights: {weights_text}")
 
     predictor_by_key = {
-        'prophet': prophet_predictor,
         'lstm': lstm_predictor,
         'xgboost': xgb_predictor
     }
@@ -1044,7 +934,6 @@ def predict_for_program(program_id, program_data, future_years=1):
         ensemble_metrics = ModelEvaluator.calculate_metrics(val_actual, ensemble_val_pred)
 
     program_confidence = get_model_confidence({
-        'prophet': prophet_pred,
         'lstm': lstm_pred,
         'xgboost': xgb_pred
     })
@@ -1053,7 +942,6 @@ def predict_for_program(program_id, program_data, future_years=1):
     return {
         'program_id': program_id,
         'program_name': PROGRAM_NAMES.get(program_id, f'Program {program_id}'),
-        'prophet': prophet_pred,
         'lstm': lstm_pred,
         'xgboost': xgb_pred,
         'ensemble': {
@@ -1167,9 +1055,9 @@ def ensure_predictions_schema(cursor):
 
 def insert_predictions(cursor, pred_result, gender_ratio, base_year=2026):
     # Insert for ALL 4 models (prophet, LSTM, XGBoost, Ensemble)
-    model_keys = ['Prophet','LSTM','XGBoost','Ensemble']
+    model_keys = ['LSTM','XGBoost','Ensemble']
     model_objs = [
-        pred_result.get('prophet'), pred_result.get('lstm'), pred_result.get('xgboost'), pred_result.get('ensemble')
+        pred_result.get('lstm'), pred_result.get('xgboost'), pred_result.get('ensemble')
     ]
     for mk, model in zip(model_keys, model_objs):
         if not model or not model.get('predictions', None):
@@ -1221,7 +1109,6 @@ def save_model_metrics_to_db(all_predictions):
 
             for model_name, model_key in [
                 ('Ensemble', 'ensemble'),
-                ('Prophet', 'prophet'),
                 ('LSTM', 'lstm'),
                 ('XGBoost', 'xgboost')
             ]:

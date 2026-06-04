@@ -111,41 +111,46 @@ class PredictionController extends Controller
     }
     public function predict(Request $request)
     {
-        $validated = $request->validate([
-            'year_start' => 'required|integer',
-            'year_end' => 'required|integer|gt:year_start',
-        ]);
+        try {
+            $yearStart = (int) $request->input('year_start', date('Y'));
+            $yearEnd = (int) $request->input('year_end', date('Y') + 1);
 
-        $futureYears = $validated['year_end'] - $validated['year_start'];
-        $scriptPath = base_path('python-service/app/train_multi_models.py');
-        $pythonBin = env('ML_PYTHON_BIN', 'C:\entrack\.venv-ml\Scripts\python.exe');
+            if ($yearEnd <= $yearStart) {
+                return back()->withErrors(['prediction' => 'End year must be greater than start year.']);
+            }
 
-        $command = [
-            $pythonBin,
-            $scriptPath,
-            '--base-year',
-            (string) $validated['year_start'],
-            '--future-years',
-            (string) $futureYears
-        ];
+            $futureYears = $yearEnd - $yearStart;
 
-        // Log the exact command
-        Log::info("Running command: " . implode(' ', $command));
+            // The magic fix: We chain the activate command WITH the python command
+            $activateScript = 'C:\entrack\.venv-ml\Scripts\activate.bat';
+            $pythonScript = 'C:\entrack\python-service\app\train_multi_models.py';
+           
+            $cmdPath = 'C:\Windows\System32\cmd.exe';
+            $command = sprintf(
+                '%s /c "%s && python %s --base-year %d --future-years %d"',
+                $cmdPath,
+                $activateScript,
+                $pythonScript,
+                $yearStart,
+                $futureYears
+            );
 
-        $process = new Process($command);
-        $process->setTimeout(600); // 10 minutes
-        $process->run();
+            Log::info("Running Command: " . $command);
 
-        if (!$process->isSuccessful()) {
-            $error = $process->getErrorOutput();
-            Log::error("Process failed: " . $error);
+            // Use fromShellCommandline to execute the entire bat chain
+            $process = \Symfony\Component\Process\Process::fromShellCommandline($command);
+            $process->setTimeout(600); // 10 minutes max
+            $process->run();
 
-            // This will show up in your React "ML Engine Failed" alert
-            return back()->withErrors([
-                'prediction' => 'Command: ' . $pythonBin . ' | Error: ' . substr($error, 0, 150)
-            ]);
+            if (!$process->isSuccessful()) {
+                $error = $process->getErrorOutput() ?: $process->getOutput();
+                return back()->withErrors(['prediction' => 'PYTHON FAILED: ' . substr($error, 0, 400)]);
+            }
+
+            return redirect()->route('predictions.index')->with('success', 'Forecast generated successfully!');
+
+        } catch (\Throwable $e) {
+            return back()->withErrors(['prediction' => 'SERVER CRASH: ' . $e->getMessage()]);
         }
-
-        return redirect()->route('predictions.index')->with('success', 'Prediction updated.');
     }
 }
