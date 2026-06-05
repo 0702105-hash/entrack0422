@@ -3,47 +3,39 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Inertia\Inertia;
+use Inertia\Response;
 
 class PredictionsController extends Controller
 {
-    //
-}
-
-
-
-/*class ProgramsController extends Controller
-{
     public function index(Request $request): Response
     {
-        // 1. Get user filters (or set defaults)
-        $selectedModel = $request->input('model', 'Ensemble');
-        $selectedSemesters = (int) $request->input('semesters', 3);
-
-        // 2. Fetch all available models from DB to populate the dropdown
+        $selectedModel = $request->input('model', 'Xgboost'); // Default model
+        
         $models = DB::table('mlmodels')->pluck('mlmodel_name')->toArray();
         if (empty($models)) {
-            $models = ['Ensemble', 'Prophet', 'LSTM', 'XGBoost'];
+            $models = ['Ensemble', 'Lstm', 'Xgboost'];
         }
 
-        // --- FETCH MAIN AGGREGATE TREND ---
-        $mainTrend = $this->buildTimelineData(null, $selectedModel, $selectedSemesters);
-
-        // --- FETCH PROGRAM-SPECIFIC TRENDS ---
         $programs = DB::table('programs')->get();
         $programTrends = [];
 
+        // Build individual program graph arrays
         foreach ($programs as $prog) {
             $programTrends[] = [
                 'program_id' => $prog->program_id,
                 'program_name' => $prog->program_name,
-                'trend' => $this->buildTimelineData($prog->program_id, $selectedModel, $selectedSemesters)
+                'trend' => $this->buildTimelineData($prog->program_id, $selectedModel)
             ];
         }
 
-        return Inertia::render('Programs', [
+        // Build aggregate graph
+        $mainTrend = $this->buildTimelineData(null, $selectedModel);
+
+        return Inertia::render('Predictions', [
             'filters' => [
                 'model' => $selectedModel,
-                'semesters' => $selectedSemesters,
             ],
             'models' => $models,
             'mainTrend' => $mainTrend,
@@ -51,34 +43,33 @@ class PredictionsController extends Controller
         ]);
     }
 
-    private function buildTimelineData($programId, $modelName, $semesterLimit)
+    private function buildTimelineData($programId, $modelName)
     {
-        $histQuery = DB::table('enrollments')
+        // THE FIX: Correctly JOIN programs and enrollments
+        $histQuery = DB::table('programs as p')
+            ->join('enrollments as e', 'p.program_id', '=', 'e.program_id')
             ->select(
-                'academic_year_start as year_start',
-                'academic_year_end as year_end',
-                DB::raw('SUM(male + female) as total')
+                'e.academic_year_start as year_start',
+                'e.academic_year_end as year_end',
+                DB::raw('SUM(e.male + e.female) as total')
             )
-            ->groupBy('year_start', 'year_end')
-            ->orderBy('year_start');
+            ->groupBy('e.academic_year_start', 'e.academic_year_end');
 
         if ($programId) {
-            $histQuery->where('program_id', $programId);
+            $histQuery->where('p.program_id', $programId);
         }
         $historical = $histQuery->get();
 
         $predQuery = DB::table('predictions')
             ->join('enrollment_batches', 'predictions.enrollment_batch_id', '=', 'enrollment_batches.enrollment_batch_id')
             ->join('mlmodels', 'predictions.mlmodel_id', '=', 'mlmodels.mlmodel_id')
-            ->where('mlmodels.mlmodel_name', $modelName)
             ->select(
                 'enrollment_batches.selected_year_start as year_start',
                 'enrollment_batches.selected_year_end as year_end',
                 DB::raw('SUM(predictions.predicted_total) as total')
             )
-            ->groupBy('year_start', 'year_end')
-            ->orderBy('year_start')
-            ->limit(ceil($semesterLimit / 3));
+            ->where('mlmodels.mlmodel_name', 'LIKE', $modelName . '%')
+            ->groupBy('enrollment_batches.selected_year_start', 'enrollment_batches.selected_year_end');
 
         if ($programId) {
             $predQuery->where('enrollment_batches.program_id', $programId);
@@ -87,9 +78,10 @@ class PredictionsController extends Controller
 
         $trendMap = [];
 
+        // Format for Recharts
         foreach ($historical as $row) {
             $period = substr($row->year_start, 2) . '-' . substr($row->year_end, 2);
-            $trendMap[$period] = [
+            $trendMap['AY ' . $period] = [
                 'period' => 'AY ' . $period,
                 'baseline' => (int) $row->total,
                 'predicted' => null,
@@ -117,10 +109,10 @@ class PredictionsController extends Controller
         }
 
         usort($trendMap, fn($a, $b) => $a['sort_key'] <=> $b['sort_key']);
-
-        return array_values(array_map(function ($item) {
+        
+        return array_values(array_map(function($item) {
             unset($item['sort_key']);
             return $item;
         }, $trendMap));
     }
-}*/
+}

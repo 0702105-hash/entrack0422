@@ -29,35 +29,25 @@ class DashboardController extends Controller
         ];
 
         // 2. Program Distribution (Donut Chart)
-        $programDistributionRows = DB::table('predictions')
+        $programDistribution = DB::table('predictions')
             ->join('enrollment_batches', 'predictions.enrollment_batch_id', '=', 'enrollment_batches.enrollment_batch_id')
             ->join('programs', 'enrollment_batches.program_id', '=', 'programs.program_id')
-            ->select(
-                'programs.program_name as name',
-                DB::raw('SUM(predictions.predicted_total) as value')
-            )
+            ->select('programs.program_name as name', DB::raw('SUM(predictions.predicted_total) as value'))
             ->groupBy('programs.program_id', 'programs.program_name')
-            ->orderByDesc('value')
             ->get();
 
-        $programDistribution = $programDistributionRows->map(fn ($row) => [
-            'name' => $row->name,
-            'value' => (int) $row->value,
-        ])->values();
-
-        // 3. Trend Data (Line Chart) - FIXED TO INCLUDE HISTORY
-        // A. Get Historical Baseline
-        $historical = DB::table('enrollments')
+        // 3. Historical Baseline (THE FIX: Using your exact JOIN!)
+        $historical = DB::table('programs as p')
+            ->join('enrollments as e', 'p.program_id', '=', 'e.program_id')
             ->select(
-                'academic_year_start as year_start',
-                'academic_year_end as year_end',
-                DB::raw('SUM(male + female) as total')
+                'e.academic_year_start as year_start',
+                'e.academic_year_end as year_end',
+                DB::raw('SUM(e.male + e.female) as total')
             )
-            ->groupBy('year_start', 'year_end')
-            ->orderBy('year_start')
+            ->groupBy('e.academic_year_start', 'e.academic_year_end')
             ->get();
 
-        // B. Get Future Predictions
+        // 4. Future Predictions 
         $predictions = DB::table('predictions')
             ->join('enrollment_batches', 'predictions.enrollment_batch_id', '=', 'enrollment_batches.enrollment_batch_id')
             ->select(
@@ -65,36 +55,33 @@ class DashboardController extends Controller
                 'enrollment_batches.selected_year_end as year_end',
                 DB::raw('SUM(predictions.predicted_total) as total')
             )
-            ->groupBy('year_start', 'year_end')
-            ->orderBy('year_start')
+            ->groupBy('enrollment_batches.selected_year_start', 'enrollment_batches.selected_year_end')
             ->get();
 
         $trendMap = [];
 
-        // C. Map Historical Data
         foreach ($historical as $row) {
             $period = 'AY ' . $row->year_start . '-' . $row->year_end;
             $trendMap[$period] = [
                 'period' => $period,
                 'baseline' => (int) $row->total,
-                'predicted' => null, // No prediction for past years
+                'predicted' => null,
                 'sort_key' => $row->year_start
             ];
         }
 
-        // D. Bridge the gap (Connect the gray line to the blue line)
+        // Bridge the gap
         if (!empty($trendMap)) {
             $lastPeriod = array_key_last($trendMap);
             $trendMap[$lastPeriod]['predicted'] = $trendMap[$lastPeriod]['baseline'];
         }
 
-        // E. Map Predicted Data
         foreach ($predictions as $row) {
             $period = 'AY ' . $row->year_start . '-' . $row->year_end;
             if (!isset($trendMap[$period])) {
                 $trendMap[$period] = [
                     'period' => $period,
-                    'baseline' => null, // No baseline for future years
+                    'baseline' => null,
                     'predicted' => (int) $row->total,
                     'sort_key' => $row->year_start
                 ];
@@ -103,7 +90,6 @@ class DashboardController extends Controller
             }
         }
 
-        // F. Sort chronologically and clean up array
         usort($trendMap, fn($a, $b) => $a['sort_key'] <=> $b['sort_key']);
         $trendData = array_map(function($item) {
             unset($item['sort_key']);
@@ -113,7 +99,7 @@ class DashboardController extends Controller
         return Inertia::render('Dashboard', [
             'summary' => $summary,
             'programDistribution' => $programDistribution,
-            'trendData' => $trendData,
+            'trendData' => $trendData
         ]);
     }
 }
