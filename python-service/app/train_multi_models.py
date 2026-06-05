@@ -299,7 +299,7 @@ class ModelEvaluator:
 
     @staticmethod
     def print_metrics(metrics, model_name="Model"):
-        print(f"\n   📊 {model_name} Evaluation Metrics:")
+        print(f"\n   {model_name} Evaluation Metrics:")
         for key, value in metrics.items():
             print(f"      {key:<16}: {value}")
 
@@ -329,7 +329,7 @@ class LSTMPredictor:
         return np.array(X), np.array(y), np.array(target_indices)
 
     def train(self, y_train, y_test, semesters_train, semesters_test):
-        print("      🔧 Training LSTM model...")
+        print("      Training LSTM model...")
         try:
             y_train_arr = np.array(y_train, dtype=float)
             y_test_arr = np.array(y_test, dtype=float)
@@ -341,7 +341,7 @@ class LSTMPredictor:
 
             X_rows, y_rows, target_indices = build_temporal_supervised(y_all, sem_all)
             if len(X_rows) < 2:
-                print("      ⚠️  Insufficient data for LSTM")
+                print("      Insufficient data for LSTM")
                 return False
 
             split_point = len(y_train_arr)
@@ -349,7 +349,7 @@ class LSTMPredictor:
             test_mask = target_indices >= split_point
 
             if train_mask.sum() < self.sequence_length + 1 or test_mask.sum() < 1:
-                print("      ⚠️  Insufficient data for LSTM")
+                print("      Insufficient data for LSTM")
                 return False
 
             X_train_rows = X_rows[train_mask]
@@ -374,7 +374,7 @@ class LSTMPredictor:
             X_test = X_test[:len(X_test_rows)]
 
             if len(X_train) < 2 or len(X_test) < 1:
-                print("      ⚠️  Insufficient data for LSTM")
+                print("      Insufficient data for LSTM")
                 return False
 
             n_features = int(X_train.shape[2])
@@ -432,7 +432,7 @@ class LSTMPredictor:
 
             return True
         except Exception as e:
-            print(f"      ❌ LSTM training error: {str(e)}")
+            print(f"      LSTM training error: {str(e)}")
             return False
 
     def predict(self, y_hist, semester_hist, steps=1, forecast_semesters=None):
@@ -443,7 +443,7 @@ class LSTMPredictor:
             history_totals = list(np.array(y_hist, dtype=float))
             history_semesters = list(np.array(semester_hist, dtype=int))
             if len(history_totals) < self.sequence_length:
-                print("      ⚠️  Not enough history for LSTM prediction")
+                print("      Not enough history for LSTM prediction")
                 return None
 
             forecast_semesters = list(forecast_semesters or build_forecast_semester_sequence(steps))
@@ -495,7 +495,7 @@ class LSTMPredictor:
                 'metrics': self.metrics
             }
         except Exception as e:
-            print(f"      ❌ LSTM prediction error: {str(e)}")
+            print(f"      LSTM prediction error: {str(e)}")
             return None
 
 
@@ -534,7 +534,7 @@ class XGBoostPredictor:
         )
 
     def train(self, y_train, y_test, semesters_train, semesters_test):
-        print("      🔧 Training XGBoost model...")
+        print("      Training XGBoost model...")
         try:
             y_train_arr = np.array(y_train, dtype=float)
             y_test_arr = np.array(y_test, dtype=float)
@@ -546,7 +546,7 @@ class XGBoostPredictor:
 
             X_rows, y_rows, target_indices = build_temporal_supervised(full_series, full_semesters)
             if len(X_rows) < 2:
-                print("      ⚠️  Insufficient data for final XGBoost fit")
+                print("      Insufficient data for final XGBoost fit")
                 return False
 
             split_point = len(y_train_arr)
@@ -554,7 +554,7 @@ class XGBoostPredictor:
             test_mask = target_indices >= split_point
 
             if train_mask.sum() < 2 or test_mask.sum() < 1:
-                print("      ⚠️  Insufficient data for XGBoost")
+                print("      Insufficient data for XGBoost")
                 return False
 
             X_train = X_rows[train_mask]
@@ -581,7 +581,7 @@ class XGBoostPredictor:
             return True
 
         except Exception as e:
-            print(f"      ❌ XGBoost training error: {str(e)}")
+            print(f"      XGBoost training error: {str(e)}")
             return False
 
     def predict(self, y_hist, semester_hist, steps=1, forecast_semesters=None):
@@ -625,12 +625,12 @@ class XGBoostPredictor:
                 'metrics': self.metrics
             }
         except Exception as e:
-            print(f"      ❌ XGBoost prediction error: {str(e)}")
+            print(f"      XGBoost prediction error: {str(e)}")
             return None
 
 
 def load_enrollment_data():
-    print("\n📂 Loading historical data...")
+    print("\nLoading historical data...")
     started = time.perf_counter()
 
     conn = mysql.connector.connect(**DB_CONFIG)
@@ -654,7 +654,7 @@ def load_enrollment_data():
         conn.close()
 
     if df.empty:
-        print("❌ No historical enrollment data found!")
+        print("No historical enrollment data found!")
         return None
 
     df['academic_year'] = df.apply(
@@ -858,14 +858,11 @@ def get_model_confidence(pred_result):
 
 
 def predict_for_program(program_id, program_data, future_years=1):
-    print(f"\n{'=' * 60}")
-    print(f"📚 Program {program_id}: {PROGRAM_NAMES.get(program_id, 'Unknown')}")
-    print(f"{'=' * 60}")
-
+    print(f"Program {program_id}: {PROGRAM_NAMES.get(program_id, 'Unknown')}")
     program_data = program_data.sort_values(['academic_year', 'semester']).reset_index(drop=True)
 
     if len(program_data) < 5:
-        print(f"⚠️  Insufficient historical data ({len(program_data)} points)")
+        print(f"Insufficient historical data ({len(program_data)} points)")
         return None
 
     y = program_data['total'].values.astype(float)
@@ -880,14 +877,14 @@ def predict_for_program(program_id, program_data, future_years=1):
     sem_train = train_semesters[:split_idx]
     sem_test = train_semesters[split_idx:]
 
-    print("\n   📊 Data Summary:")
+    print("\n   Data Summary:")
     print(f"      Total points: {len(y)} | Train: {len(y_train)} | Test: {len(y_test)}")
     print(f"      Min: {y.min():.0f} | Max: {y.max():.0f} | Mean: {y.mean():.0f}")
 
     steps = future_years * 3
     forecast_semesters = build_forecast_semester_sequence(steps)
 
-    print("\n   🔮 MODEL 2: LSTM (Neural Network)")
+    print("\n   MODEL 2: LSTM (Neural Network)")
     lstm_seq_len = min(4, max(2, len(y_train) // 5 if len(y_train) >= 5 else 2))
     lstm_units = 16 if len(y_train) < 20 else 24
     lstm_epochs = 60 if len(y_train) < 20 else 80
@@ -897,7 +894,7 @@ def predict_for_program(program_id, program_data, future_years=1):
     if lstm_pred and lstm_pred.get('metrics'):
         ModelEvaluator.print_metrics(lstm_pred['metrics'], "LSTM")
 
-    print("\n   🔮 MODEL 3: XGBoost")
+    print("\n   MODEL 3: XGBoost")
     xgb_predictor = XGBoostPredictor(n_lags=min(3, max(1, len(y_train) - 1)))
     xgb_success = xgb_predictor.train(y_train, y_test, sem_train, sem_test)
     xgb_pred = xgb_predictor.predict(y, semesters, steps=steps, forecast_semesters=forecast_semesters) if xgb_success else None
@@ -916,7 +913,7 @@ def predict_for_program(program_id, program_data, future_years=1):
     valid_predictions = weighted_predictions
 
     if not valid_predictions:
-        print("      ❌ No valid predictions from any model")
+        print("      No valid predictions from any model")
         return None
 
     if len(valid_predictions) == 1:
@@ -928,7 +925,7 @@ def predict_for_program(program_id, program_data, future_years=1):
     weights_text = ", ".join(
         f"{model_name}={weight:.2f}" for model_name, weight in zip(valid_models, model_weights)
     )
-    print(f"   ⚖️ Ensemble weights: {weights_text}")
+    print(f"   Ensemble weights: {weights_text}")
 
     predictor_by_key = {
         'lstm': lstm_predictor,
@@ -1071,11 +1068,11 @@ def clear_existing_predictions(cursor, year_start, year_end):
         
         # Re-enable checks
         cursor.execute("SET FOREIGN_KEY_CHECKS = 1")
-        print("✅ Tables cleared.")
+        print("Tables cleared.")
         
     except Exception as e:
         cursor.execute("SET FOREIGN_KEY_CHECKS = 1")
-        print(f"❌ Error clearing tables: {e}")
+        print(f"Error clearing tables: {e}")
         raise e
 
 def save_predictions_to_db(all_predictions, future_years=1, base_year=2026, gender_ratio_map=None):
@@ -1091,6 +1088,8 @@ def save_predictions_to_db(all_predictions, future_years=1, base_year=2026, gend
         inserted = 0
 
         for pred_result in all_predictions:
+            
+            
             if pred_result is None:
                 continue
 
@@ -1132,9 +1131,11 @@ def save_predictions_to_db(all_predictions, future_years=1, base_year=2026, gend
                     )
 
                     cursor.execute("""
-                        INSERT INTO predictions
-                        (enrollment_batch_id, predicted_total, predicted_male, predicted_female, confidence, mlmodel_id, created_at, updated_at)
-                        VALUES (%s, %s, %s, %s, %s, %s, NOW(), NOW())
+                      INSERT INTO predictions 
+                        (program_id, enrollment_batch_id, mlmodel_id, predicted_total) 
+                        VALUES (%s, %s, %s, %s)
+                        ON DUPLICATE KEY UPDATE 
+                        predicted_total = VALUES(predicted_total)
                     """, (
                         enrollment_batch_id,
                         pred_total,
@@ -1160,7 +1161,7 @@ def save_predictions_to_db(all_predictions, future_years=1, base_year=2026, gend
                     inserted += 1
 
         conn.commit()
-        print(f"✅ Saved {inserted} prediction rows for AY {year_start}-{year_end}")
+        print(f"Saved {inserted} prediction rows for AY {year_start}-{year_end}")
 
     except Exception as e:
         conn.rollback()
@@ -1178,7 +1179,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     DB_CONFIG["host"] = os.getenv("DB_HOST", DB_CONFIG.get("host", "localhost"))
-    DB_CONFIG["user"] = os.getenv("DB_USERNAME", DB_CONFIG.get("user", "root"))
+    DB_CONFIG["user"] = os.getenv("DB_USERNAME", DB_CONFIG.get("user", "entrack_user"))
     DB_CONFIG["password"] = os.getenv("DB_PASSWORD", DB_CONFIG.get("password", "entrack123"))
     DB_CONFIG["database"] = os.getenv("DB_DATABASE", DB_CONFIG.get("database", "entrack"))
 
@@ -1206,7 +1207,7 @@ if __name__ == "__main__":
             gender_ratio_map=gender_ratio_map
         )
     else:
-        print("❌ No predictions were generated to save.")
+        print("No predictions were generated to save.")
         
     total_elapsed = time.perf_counter() - total_started
-    print(f"✅ Total retrain time: {total_elapsed:.2f}s")
+    print(f"Total retrain time: {total_elapsed:.2f}s")

@@ -124,7 +124,7 @@ class PredictionController extends Controller
 
             // 2. Absolute Paths
             $pythonBin = 'C:\entrack\.venv-ml\Scripts\python.exe';
-            $scriptPath = 'C:\entrack\python-service\app\train_multi_models.py';
+            $scriptPath = 'C:\entrack\python-service\app\predict_fast.py';
 
             $command = [
                 $pythonBin,
