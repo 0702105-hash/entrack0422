@@ -11,7 +11,7 @@ class DashboardController extends Controller
 {
     public function index(): Response
     {
-        // 1. Fetch Summary Totals
+        // 1. Summary Totals
         $summaryRow = Prediction::query()
             ->selectRaw('
                 COALESCE(SUM(predicted_total), 0) as total_predicted,
@@ -28,7 +28,7 @@ class DashboardController extends Controller
             'avg_confidence' => round((float) ($summaryRow->avg_confidence ?? 0), 2), 
         ];
 
-        // 2. Program Distribution (Donut Chart)
+        // 2. Program Distribution
         $programDistribution = DB::table('predictions')
             ->join('enrollment_batches', 'predictions.enrollment_batch_id', '=', 'enrollment_batches.enrollment_batch_id')
             ->join('programs', 'enrollment_batches.program_id', '=', 'programs.program_id')
@@ -36,7 +36,7 @@ class DashboardController extends Controller
             ->groupBy('programs.program_id', 'programs.program_name')
             ->get();
 
-        // 3. Historical Baseline (THE FIX: Using your exact JOIN!)
+        // 3. Historical Baseline
         $historical = DB::table('programs as p')
             ->join('enrollments as e', 'p.program_id', '=', 'e.program_id')
             ->select(
@@ -60,28 +60,39 @@ class DashboardController extends Controller
 
         $trendMap = [];
 
+        // Build Historical
         foreach ($historical as $row) {
-            $period = 'AY ' . $row->year_start . '-' . $row->year_end;
+            $period = $row->year_start . '-' . $row->year_end;
             $trendMap[$period] = [
                 'period' => $period,
                 'baseline' => (int) $row->total,
-                'predicted' => null,
+                'predicted' => null, // Empty for past
                 'sort_key' => $row->year_start
             ];
         }
 
-        // Bridge the gap
-        if (!empty($trendMap)) {
-            $lastPeriod = array_key_last($trendMap);
-            $trendMap[$lastPeriod]['predicted'] = $trendMap[$lastPeriod]['baseline'];
+        // --- THE ANCHOR BRIDGE ---
+        // Find the absolute last historical year and inject it into the prediction line
+        // so the graph connects smoothly without a gap!
+        $latestPeriod = null;
+        $latestYear = 0;
+        foreach ($trendMap as $p => $data) {
+            if ($data['sort_key'] > $latestYear) {
+                $latestYear = $data['sort_key'];
+                $latestPeriod = $p;
+            }
+        }
+        if ($latestPeriod) {
+            $trendMap[$latestPeriod]['predicted'] = $trendMap[$latestPeriod]['baseline'];
         }
 
+        // Build Predictions
         foreach ($predictions as $row) {
-            $period = 'AY ' . $row->year_start . '-' . $row->year_end;
+            $period = $row->year_start . '-' . $row->year_end;
             if (!isset($trendMap[$period])) {
                 $trendMap[$period] = [
                     'period' => $period,
-                    'baseline' => null,
+                    'baseline' => null, // Empty for future
                     'predicted' => (int) $row->total,
                     'sort_key' => $row->year_start
                 ];
@@ -90,11 +101,15 @@ class DashboardController extends Controller
             }
         }
 
+        // Sort chronologically
         usort($trendMap, fn($a, $b) => $a['sort_key'] <=> $b['sort_key']);
-        $trendData = array_map(function($item) {
+        
+        // STRICT ARRAY FORMATTING (Fixes the blank charts)
+        $trendData = [];
+        foreach ($trendMap as $item) {
             unset($item['sort_key']);
-            return $item;
-        }, $trendMap);
+            $trendData[] = $item; // Forces a 0-indexed array for React
+        }
 
         return Inertia::render('Dashboard', [
             'summary' => $summary,

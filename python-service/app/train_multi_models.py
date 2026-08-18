@@ -1129,20 +1129,22 @@ def save_predictions_to_db(all_predictions, future_years=1, base_year=2026, gend
                         total_male=pred_male,
                         total_female=pred_female
                     )
-
                     cursor.execute("""
-                      INSERT INTO predictions 
-                        (program_id, enrollment_batch_id, mlmodel_id, predicted_total) 
-                        VALUES (%s, %s, %s, %s)
-                        ON DUPLICATE KEY UPDATE 
-                        predicted_total = VALUES(predicted_total)
+                        INSERT INTO predictions
+                            (enrollment_batch_id, mlmodel_id, predicted_total, predicted_male, predicted_female, confidence)
+                        VALUES (%s, %s, %s, %s, %s, %s)
+                        ON DUPLICATE KEY UPDATE
+                            predicted_total   = VALUES(predicted_total),
+                            predicted_male    = VALUES(predicted_male),
+                            predicted_female  = VALUES(predicted_female),
+                            confidence        = VALUES(confidence)
                     """, (
                         enrollment_batch_id,
+                        mlmodel_id,
                         pred_total,
                         pred_male,
                         pred_female,
                         float(get_model_confidence(pred_result)),
-                        mlmodel_id
                     ))
                     prediction_id = cursor.lastrowid
 

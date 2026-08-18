@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React from 'react';
 import {
   PieChart,
   Pie,
@@ -39,25 +39,13 @@ const PROGRAM_ABBREVIATIONS: Record<string, string> = {
   'BACHELOR OF SCIENCE IN SOCIAL WORK': 'BS Social Work',
 };
 
-const getAbbreviation = (fullName: string) => {
-  const upperName = fullName.toUpperCase().trim();
-  return PROGRAM_ABBREVIATIONS[upperName] || fullName;
-};
-
 const CustomTooltip = ({ active, payload }: any) => {
   if (active && payload && payload.length) {
-    const data = payload[0].payload;
     return (
-      <div className="rounded-lg border border-slate-100 bg-white p-3 shadow-xl">
-        <div className="mb-1 flex items-center gap-2">
-          <div 
-            className="h-3 w-3 rounded-full" 
-            style={{ backgroundColor: payload[0].color }}
-          ></div>
-          <p className="font-semibold text-slate-800">{data.shortName}</p>
-        </div>
-        <p className="ml-5 text-sm text-slate-600">
-          {data.value} Predicted <span className="text-slate-400">({(data.percent * 100).toFixed(1)}%)</span>
+      <div className="rounded-lg border border-slate-100 bg-white p-3 shadow-lg">
+        <p className="font-semibold text-slate-800">{payload[0].name}</p>
+        <p className="text-sm text-slate-600">
+          Predicted Students: <span className="font-bold text-sky-600">{payload[0].value}</span>
         </p>
       </div>
     );
@@ -66,21 +54,19 @@ const CustomTooltip = ({ active, payload }: any) => {
 };
 
 export default function DonutResourcesChart({ data }: Props) {
-  const chartData = useMemo(() => {
-    if (!data) return [];
-    return data.map((item) => ({
-      ...item,
-      shortName: getAbbreviation(item.name),
-    }));
-  }, [data]);
-
-  if (!chartData || chartData.length === 0) {
+  if (!data || data.length === 0) {
     return (
-      <div className="flex h-full w-full min-h-[300px] items-center justify-center rounded-xl border border-gray-100 bg-white p-6 shadow-sm">
+      <div className="flex h-full w-full items-center justify-center rounded-xl border border-gray-100 bg-white p-6 shadow-sm">
         <p className="text-gray-400">No program data available</p>
       </div>
     );
   }
+
+  // Format the names so they fit nicely in the legend
+  const chartData = data.map(item => ({
+    ...item,
+    formattedName: PROGRAM_ABBREVIATIONS[item.name.toUpperCase()] || item.name
+  }));
 
   return (
     <div className="flex h-full w-full flex-col rounded-xl border border-gray-100 bg-white p-6 shadow-sm">
@@ -93,13 +79,13 @@ export default function DonutResourcesChart({ data }: Props) {
           <PieChart>
             <Pie
               data={chartData}
-              cx="35%" // Shifted left to make room for the legend on the right
+              cx="35%"
               cy="50%" 
               innerRadius={70} 
               outerRadius={100} 
               paddingAngle={2}
               dataKey="value"
-              nameKey="shortName"
+              nameKey="formattedName" /* FIX: Properly mapped to formatted name */
               stroke="none"
             >
               {chartData.map((entry, index) => (
@@ -116,8 +102,8 @@ export default function DonutResourcesChart({ data }: Props) {
               layout="vertical"
               verticalAlign="middle" 
               align="right"
+              wrapperStyle={{ fontSize: '12px', paddingLeft: '20px' }}
               iconType="circle"
-              wrapperStyle={{ fontSize: '12px' }}
             />
           </PieChart>
         </ResponsiveContainer>

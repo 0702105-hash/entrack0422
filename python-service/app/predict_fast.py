@@ -92,12 +92,22 @@ def run_prediction():
         m_xgb = joblib.load(f'saved_models/xgboost_prog_{prog_id}.pkl')
         predicted_scaled = m_xgb.predict(xgb_input)[0]
     elif model_choice == 'lstm':
+        lstm_path = f'saved_models/lstm_prog_{prog_id}.keras'
+        if not os.path.exists(lstm_path):
+            print(f"Error: LSTM model not available for program {prog_id}. Run training first.")
+            sys.exit(1)
         m_lstm = tf.keras.models.load_model(f'saved_models/lstm_prog_{prog_id}.keras')
         predicted_scaled = m_lstm.predict(lstm_input, verbose=0)[0][0]
     elif model_choice == 'ensemble':
         m_xgb = joblib.load(f'saved_models/xgboost_prog_{prog_id}.pkl')
         m_lstm = tf.keras.models.load_model(f'saved_models/lstm_prog_{prog_id}.keras')
-        predicted_scaled = (m_xgb.predict(xgb_input)[0] + m_lstm.predict(lstm_input, verbose=0)[0][0]) / 2
+        xgb_pred = joblib.load(xgb_path).predict(xgb_input)[0]
+        if os.path.exists(lstm_path):
+            lstm_pred = tf.keras.models.load_model(lstm_path).predict(lstm_input, verbose=0)[0][0]
+            predicted_scaled = (xgb_pred + lstm_pred) / 2
+        else:
+            print(f"Note: LSTM unavailable for program {prog_id}, using XGBoost alone for Ensemble.")
+            predicted_scaled = xgb_pred  # graceful degradation
     else:
         sys.exit(1)
 

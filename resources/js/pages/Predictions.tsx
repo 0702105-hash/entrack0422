@@ -7,7 +7,11 @@ import {
 } from 'recharts';
 
 type TrendItem = { period: string; baseline: number | null; predicted: number | null; };
-type PredictionData = { prediction_id: number; program_id: number; program_name: string; model: string; academic_year: string; trend: TrendItem[]; };
+type PredictionData = {
+  program_id: number;
+  program_name: string;
+  trend: TrendItem[];
+};
 type ProgramOption = { program_id: number; program_name: string; };
 
 type Props = {
@@ -36,6 +40,7 @@ export default function Predictions({ filters, models, programs, mainTrend, pred
 
   const handleFilterChange = (field: string, value: string) => {
     setData(field as any, value);
+    // FIX: Using direct URL string to prevent 'route' is not defined crash
     router.get('/predictions', { ...data, [field]: value }, { preserveState: true, preserveScroll: true, replace: true });
   };
 
@@ -54,8 +59,7 @@ export default function Predictions({ filters, models, programs, mainTrend, pred
     });
   };
 
-  const safeMainTrend = mainTrend && mainTrend.length > 0
-    ? mainTrend : [{ period: 'First', baseline: 0, predicted: 0 }, { period: 'Second', baseline: 0, predicted: 0 }, { period: 'Summer', baseline: 0, predicted: 0 }];
+  const safeMainTrend = Array.isArray(mainTrend) ? mainTrend : [];
 
   return (
     <>
@@ -77,7 +81,7 @@ export default function Predictions({ filters, models, programs, mainTrend, pred
 
           <main className="min-w-0 flex-1">
             <div className="mt-6 flex flex-col gap-6">
-              
+
               <div>
                 <h2 className="text-xl font-bold text-slate-800">Predictions</h2>
                 <p className="text-sm text-slate-500">Create and review predictions by model, academic year, and program.</p>
@@ -165,10 +169,10 @@ export default function Predictions({ filters, models, programs, mainTrend, pred
                     </div>
                   ) : (
                     predictionTrends.map((pred) => (
-                      <div key={pred.prediction_id} className="flex flex-col rounded-xl border border-slate-200 bg-white p-5 shadow-sm transition-shadow hover:shadow-md">
+                      <div key={pred.program_id} className="flex flex-col rounded-xl border border-slate-200 bg-white p-5 shadow-sm transition-shadow hover:shadow-md">
                         <div className="mb-2">
                           <h4 className="font-semibold text-slate-800 truncate" title={pred.program_name}>{pred.program_name}</h4>
-                          <p className="text-xs text-slate-500">{pred.model} • AY {pred.academic_year}</p>
+                          <p className="text-xs text-slate-500">{filters.model}</p>
                         </div>
                         <div className="flex-1 min-h-[220px] w-full">
                           {isMounted && (
@@ -196,5 +200,3 @@ export default function Predictions({ filters, models, programs, mainTrend, pred
     </>
   );
 }
-
-Predictions.layout = (page: React.ReactNode) => <>{page}</>;
