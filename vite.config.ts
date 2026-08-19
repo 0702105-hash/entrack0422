@@ -10,6 +10,7 @@ export default defineConfig({
         laravel({
             input: ['resources/css/app.css', 'resources/js/app.tsx'],
             refresh: true,
+            ssr: 'resources/js/ssr.tsx',
         }),
         inertia(),
         react({
@@ -22,4 +23,11 @@ export default defineConfig({
             formVariants: true,
         }),
     ],
+    optimizeDeps: {
+        noDiscovery: true,
+        include: [],
+    },
+    ssr: {
+        noExternal: ['sonner', '@headlessui/react', 'recharts'],
+    },
 });
