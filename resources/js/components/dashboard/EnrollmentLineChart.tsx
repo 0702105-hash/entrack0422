@@ -12,8 +12,8 @@ import {
 
 type TrendItem = {
   period: string;
-  predicted: number;
-  baseline: number;
+  predicted: number | null;
+  baseline: number | null;
 };
 
 type Props = {
@@ -75,10 +75,11 @@ export default function EnrollmentLineChart({ data }: Props) {
               type="monotone"
               dataKey="baseline"
               name="Historical Baseline"
-              stroke="#9ca3af" // Gray
+              stroke="#9ca3af"
               strokeWidth={2}
               dot={{ r: 4, strokeWidth: 2 }}
               activeDot={{ r: 6 }}
+              connectNulls
             />
             
             {/* Predicted Line */}
@@ -90,6 +91,7 @@ export default function EnrollmentLineChart({ data }: Props) {
               strokeWidth={3}
               dot={{ r: 4, strokeWidth: 2 }}
               activeDot={{ r: 6, stroke: '#0284c7', strokeWidth: 2 }}
+              connectNulls
             />
           </LineChart>
         </ResponsiveContainer>
