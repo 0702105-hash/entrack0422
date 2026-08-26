@@ -7,6 +7,7 @@ use App\Models\Enrollment;
 use App\Models\Program;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Artisan;
 
 class EnrollmentImportController extends Controller
 {
@@ -55,34 +56,20 @@ class EnrollmentImportController extends Controller
 
             DB::commit();
 
-            // Trigger the ML pipeline to retrain and reseed predictions
-            $pythonBin = 'C:\entrack\.venv-ml\Scripts\python.exe';
-            $scriptPath = 'C:\entrack\python-service\app\train_multi_models.py';
+            // Trigger the ML pipeline to retrain and reseed predictions.
+            // This used to spawn its own hardcoded-Windows-path Process call
+            // (a second copy of the same bug PredictController had). It now
+            // just calls the same `ml:retrain` Artisan command the Retrain
+            // button uses, which already resolves paths correctly.
+            $exitCode = Artisan::call('ml:retrain', [
+                '--base-year' => (int) date('Y'),
+                '--future-years' => 1,
+            ]);
 
-            $env = [
-                'VIRTUAL_ENV' => 'C:\entrack\.venv-ml',
-                'PATH' => 'C:\entrack\.venv-ml\Scripts;C:\Windows\System32;C:\Windows;C:\Windows\System32\Wbem',
-                'SystemRoot' => 'C:\Windows',
-                'SystemDrive' => 'C:',
-                'TEMP' => 'C:\Windows\Temp',
-                'TMP' => 'C:\Windows\Temp',
-                'DB_HOST' => env('DB_HOST', '127.0.0.1'),
-                'DB_USERNAME' => env('DB_USERNAME', 'root'),
-                'DB_PASSWORD' => env('DB_PASSWORD', ''),
-                'DB_DATABASE' => env('DB_DATABASE', 'entrack'),
-            ];
-
-            $process = new \Symfony\Component\Process\Process(
-                [$pythonBin, $scriptPath, '--base-year', (string) date('Y'), '--future-years', '1'],
-                null,
-                $env
-            );
-            $process->setTimeout(900);
-            $process->run();
-
-            if (!$process->isSuccessful()) {
-                Log::error('ML pipeline failed after CSV import: ' . $process->getErrorOutput());
-                return redirect()->back()->with('success', 'Data imported. Warning: ML pipeline failed — ' . substr($process->getErrorOutput(), 0, 200));
+            if ($exitCode !== 0) {
+                $output = Artisan::output();
+                Log::error('ML pipeline failed after CSV import: ' . $output);
+                return redirect()->back()->with('success', 'Data imported. Warning: ML pipeline failed — ' . substr($output, -400));
             }
 
             return redirect()->back()->with('success', 'CAS Enrollment data imported and predictions updated.');

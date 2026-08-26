@@ -4,8 +4,8 @@ use Illuminate\Support\Facades\Route;
 use Laravel\Fortify\Features;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ProgramsController;
-use App\Http\Controllers\PredictController; // Ensure logic is here
-use App\Http\Controllers\PredictionController; // Ensure view logic is here
+use App\Http\Controllers\PredictController;
+use App\Http\Controllers\PredictionController;
 use App\Http\Controllers\PredictionRetrainController;
 use App\Http\Controllers\EnrollmentImportController;
 use App\Http\Controllers\AuthController;
@@ -16,31 +16,31 @@ Route::inertia('/', 'welcome', [
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
-    
+
     // Programs Routes
-    Route::get('/programs', [ProgramsController::class, 'index'])->name('programs.index'); 
+    Route::get('/programs', [ProgramsController::class, 'index'])->name('programs.index');
     Route::get('/programs/manage', [ProgramsController::class, 'manage'])->name('programs.manage');
     Route::post('/programs', [ProgramsController::class, 'store'])->name('programs.store');
     Route::put('/programs/{program}', [ProgramsController::class, 'update'])->name('programs.update');
     Route::delete('/programs/{program}', [ProgramsController::class, 'destroy'])->name('programs.destroy');
-    
+
     // Prediction Routes
     Route::get('/predictions', [PredictionController::class, 'index'])->name('predictions.index');
-    Route::post('/predict', [PredictController::class, 'predict'])->name('predict.run'); // Use PredictController
-    //Route::post('/predict', [PredictionController::class, 'predict'])->name('predict.run'); // Use PredictController
+    Route::post('/predict', [PredictController::class, 'predict'])->name('predict.run');
     Route::post('/predictions/retrain', [PredictionRetrainController::class, 'retrain'])->name('predictions.retrain');
-    
+
     // Import Route
     Route::post('/programs/import-enrollments', [EnrollmentImportController::class, 'store'])->name('enrollments.import');
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
-});
 
-// Debug route
-Route::get('/debug-session', function () {
-    return response()->json([
-        'session' => session()->all(),
-        'user' => auth()->user()
-    ]);
+    // Debug route -- moved behind auth. It was previously reachable by
+    // anyone, logged in or not, and dumps session + user data.
+    Route::get('/debug-session', function () {
+        return response()->json([
+            'session' => session()->all(),
+            'user' => auth()->user(),
+        ]);
+    });
 });
 
 require __DIR__ . '/settings.php';

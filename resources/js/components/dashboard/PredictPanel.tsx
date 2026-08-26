@@ -92,7 +92,6 @@ const PredictPanel: React.FC<PredictPanelProps> = ({ onSuccess }) => {
               <option value="ensemble">Ensemble</option>
               <option value="lstm">LSTM</option>
               <option value="xgboost">XGBoost</option>
-              <option value="prophet">Prophet</option>
             </select>
           </div>
 

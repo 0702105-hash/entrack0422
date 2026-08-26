@@ -3,77 +3,72 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use Symfony\Component\Process\Process;
 use Illuminate\Support\Facades\Log;
+use Symfony\Component\Process\Process;
 
 class PredictController extends Controller
 {
+    /**
+     FOR THE PREDICT BUTTON, TO CREATE PREDICTIONS!
+     */
     public function predict(Request $request)
     {
         set_time_limit(600);
-        try {
-            $programId = $request->input('program_id');
-            $model = $request->input('model');
-            $yearStart = (int) $request->input('year_start');
-            $yearEnd = (int) $request->input('year_end');
-            $futureYears = $yearEnd - $yearStart;
 
-            if ($yearEnd <= $yearStart) {
-                return back()->withErrors(['prediction' => 'End year must be greater than start year.']);
-            }
+        $validated = $request->validate([
+            'program_id' => ['required', 'integer'],
+            'model' => ['nullable', 'string'],
+            'year_start' => ['required', 'integer'],
+            'year_end' => ['required', 'integer', 'gt:year_start'],
+        ]);
 
-            $futureYears = $yearEnd - $yearStart;
+        // The form collects a year range, but the underlying engine forecasts
+        // to a single target academic year: year_end (see predict_program.py
+        // docstring). year_start only exists to bound the "End Year" dropdown
+        // in the UI.
+        $targetYear = (int) $validated['year_end'];
 
-            $pythonScript = 'C:\entrack\python-service\app\predict_fast.py';
+        $pythonBin = env('ML_PYTHON_BIN', 'python3');
+        $workingDir = base_path('python-service');
 
-            // 1. Point directly to the python executable, skipping CMD wrappers
-            $pythonExe = 'C:\entrack\.venv-ml\Scripts\python.exe';
-            $scriptPath = 'C:\entrack\python-service\app\predict_fast.py';
-            $command = [
-                $pythonExe,
-                $pythonScript,
-                '--program',
-                (string) $programId,
-                '--model',
-                $model,
-                '--base-year',
-                (string) $yearStart,
-                '--future-years',
-                (string) $futureYears
-            ];
-            $process = new \Symfony\Component\Process\Process($command);
+        $command = [
+            $pythonBin,
+            '-m', 'app.predict_program',
+            '--program', (string) $validated['program_id'],
+            '--target-year', (string) $targetYear,
+        ];
 
-            // 2. Set working directory strictly to the python app folder
-            $process->setWorkingDirectory('C:\entrack\python-service\app');
-            $process->setTimeout(600); // 10 minutes
-
-            $env = array_merge(getenv(), [
-                'VIRTUAL_ENV' => 'C:\entrack\.venv-ml',
-                'PATH' => 'C:\entrack\.venv-ml\Scripts;' . getenv('PATH'),
-                'TF_ENABLE_ONEDNN_OPTS' => '0',
-                'TF_CPP_MIN_LOG_LEVEL' => '3',
-            ]);
-            $process->setEnv($env);
-
-            \Illuminate\Support\Facades\Log::info("Running Prediction Engine natively...");
-
-            $process->run();
-
-            if (!$process->isSuccessful()) {
-                $error = $process->getErrorOutput() ?: $process->getOutput();
-
-                // Write the full unabridged error to storage/logs/laravel.log
-                \Illuminate\Support\Facades\Log::error("PYTHON CRASH LOG:\n" . $error);
-
-                // Grab the LAST 600 characters where the actual error reason is located
-                $shortError = substr($error, -600);
-                return back()->withErrors(['prediction' => 'PYTHON FAILED: ...' . $shortError]);
-            }
-
-            return redirect()->route('predictions.index')->with('success', 'Forecast generated successfully!');
-
-        } catch (\Throwable $e) {
-            return back()->withErrors(['prediction' => 'SERVER CRASH: ' . $e->getMessage()]);
+        if (!empty($validated['model'])) {
+            $command[] = '--model';
+            $command[] = $validated['model'];
         }
+
+        $env = [
+            'DB_HOST' => (string) config('database.connections.mysql.host'),
+            'DB_USERNAME' => (string) config('database.connections.mysql.username'),
+            'DB_PASSWORD' => (string) config('database.connections.mysql.password'),
+            'DB_DATABASE' => (string) config('database.connections.mysql.database'),
+            'PYTHONIOENCODING' => 'utf-8',
+            'PYTHONUTF8' => '1',
+        ];
+
+        $process = new Process($command, $workingDir, $env);
+        $process->setTimeout(600);
+
+        try {
+            $process->run();
+        } catch (\Throwable $e) {
+            Log::error('Prediction process failed to start: ' . $e->getMessage());
+            return back()->withErrors(['prediction' => 'Could not start the prediction engine: ' . $e->getMessage()]);
+        }
+
+        if (!$process->isSuccessful()) {
+            $error = $process->getErrorOutput() ?: $process->getOutput();
+            Log::error("Prediction script failed:\n" . $error);
+
+            return back()->withErrors(['prediction' => 'Prediction failed: ' . substr($error, -600)]);
+        }
+
+        return redirect()->route('predictions.index')->with('success', 'Forecast generated successfully!');
     }
 }

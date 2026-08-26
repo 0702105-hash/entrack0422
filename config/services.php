@@ -21,8 +21,4 @@ return [
             'channel' => env('SLACK_BOT_USER_DEFAULT_CHANNEL'),
         ],
     ],
-
-    'ml_service' => [
-        'base_url' => env('ML_SERVICE_URL', 'http://127.0.0.1:8001'),
-    ],
 ];

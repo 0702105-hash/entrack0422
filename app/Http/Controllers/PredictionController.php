@@ -5,10 +5,12 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
-use Symfony\Component\Process\Process;
-use Illuminate\Support\Facades\Log;
+
 class PredictionController extends Controller
 {
+    /**
+    FOR PREDICTION PAGE!
+     */
     public function index(Request $request)
     {
         $selectedModel = $request->input('model', 'Ensemble');
@@ -103,63 +105,5 @@ class PredictionController extends Controller
             unset($item['sort_key']);
             return $item;
         }, $trendMap));
-    }
-    public function predict(Request $request)
-    {
-        try {
-            // 1. Get the years
-            $yearStart = (int) $request->input('year_start', date('Y'));
-            $yearEnd = (int) $request->input('year_end', date('Y') + 1);
-
-            if ($yearEnd <= $yearStart) {
-                return back()->withErrors(['prediction' => 'End year must be greater than start year.']);
-            }
-
-            $futureYears = $yearEnd - $yearStart;
-
-            // 2. Absolute Paths
-            $pythonBin = 'C:\entrack\.venv-ml\Scripts\python.exe';
-            $scriptPath = 'C:\entrack\python-service\app\predict_fast.py';
-
-            $command = [
-                $pythonBin,
-                $scriptPath,
-                '--base-year',
-                (string) $yearStart,
-                '--future-years',
-                (string) $futureYears
-            ];
-
-            // ==========================================
-            // THE WINDOWS BRUTE-FORCE FIX
-            // We explicitly give Python the core Windows system paths.
-            // Without these, Scikit-Learn's C++ components crash.
-            // ==========================================
-            $env = [
-                'VIRTUAL_ENV' => 'C:\entrack\.venv-ml',
-                'PATH' => 'C:\entrack\.venv-ml\Scripts;C:\Windows\System32;C:\Windows;C:\Windows\System32\Wbem',
-                'SystemRoot' => 'C:\Windows',
-                'SystemDrive' => 'C:',
-                'TEMP' => 'C:\Windows\Temp',
-                'TMP' => 'C:\Windows\Temp',
-            ];
-
-            Log::info("Running Target Prediction Engine...");
-
-            // 3. Execute using the brute-forced environment
-            $process = new \Symfony\Component\Process\Process($command, null, $env);
-            $process->setTimeout(600); // 10 minutes max
-            $process->run();
-
-            if (!$process->isSuccessful()) {
-                $error = $process->getErrorOutput() ?: $process->getOutput();
-                return back()->withErrors(['prediction' => 'PYTHON FAILED: ' . substr($error, 0, 500)]);
-            }
-
-            return redirect()->route('predictions.index')->with('success', 'Forecast generated successfully!');
-
-        } catch (\Throwable $e) {
-            return back()->withErrors(['prediction' => 'SERVER CRASH: ' . $e->getMessage()]);
-        }
     }
 }
