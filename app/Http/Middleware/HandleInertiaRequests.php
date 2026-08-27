@@ -42,6 +42,15 @@ class HandleInertiaRequests extends Middleware
                 'user' => $request->user(),
             ],
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
+            // Session flash messages (redirect()->with('success', ...) /
+            // ->withErrors([...])) weren't being shared to the frontend at
+            // all before this. `errors` is auto-shared by Inertia's Laravel
+            // adapter already; `flash` was not, even though at least one
+            // page (Dashboard.tsx) already has UI code checking
+            // `flash?.success` that simply never had real data to read.
+            'flash' => [
+                'success' => fn () => $request->session()->get('success'),
+            ],
         ];
     }
 }

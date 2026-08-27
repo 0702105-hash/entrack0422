@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Head, Link, useForm } from '@inertiajs/react';
+import { Head, Link, useForm, usePage } from '@inertiajs/react';
 import PublicLayout from '@/layouts/PublicLayout';
 import Sidebar from '@/components/dashboard/Sidebar';
 import {
@@ -50,7 +50,9 @@ export default function Programs({ programs = [] }: Props) {
 
   const targetAY = safePrograms.length > 0 ? safePrograms[0].academic_year : '2026-2027';
 
-  // --- CSV Import Setup ---
+  const { props } = usePage<{ flash?: { success?: string } }>();
+
+  // --- Import Setup ---
   const { data, setData, post, processing, errors, progress } = useForm({
     file: null as File | null,
   });
@@ -60,7 +62,6 @@ export default function Programs({ programs = [] }: Props) {
     post('/programs/import-enrollments', {
       preserveScroll: true,
       onSuccess: () => {
-        alert('Data successfully imported!');
         setData('file', null);
       },
     });
@@ -114,7 +115,7 @@ export default function Programs({ programs = [] }: Props) {
                     Import Historical Data
                   </h3>
                   <p className="text-sm text-slate-500 mt-1">
-                    Upload a CSV file containing CAS enrollment records to feed the prediction models.
+                    Upload the CAS enrollment Excel workbook (one sheet per academic year) or a CSV file to feed the prediction models.
                   </p>
                 </div>
 
@@ -124,7 +125,7 @@ export default function Programs({ programs = [] }: Props) {
                       <input
                         key={data.file ? 'has-file' : 'empty'} 
                         type="file"
-                        accept=".csv"
+                        accept=".xlsx,.xls,.csv"
                         onChange={(e) => setData('file', e.target.files ? e.target.files[0] : null)}
                         className="block w-full max-w-md text-sm text-slate-600 file:mr-4 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-slate-100 file:text-slate-700 hover:file:bg-slate-200 transition cursor-pointer"
                       />
@@ -137,17 +138,22 @@ export default function Programs({ programs = [] }: Props) {
                         : 'bg-blue-600 hover:bg-blue-700'
                         }`}
                     >
-                      {processing ? 'Uploading...' : 'Upload CSV'}
+                      {processing ? 'Uploading...' : 'Upload File'}
                     </button>
                   </form>
 
-                  {/* Progress & Errors */}
+                  {/* Progress & Messages */}
                   {progress && (
                     <div className="w-full bg-slate-200 rounded-full h-2 mt-1">
                       <div
                         className="bg-blue-600 h-2 rounded-full transition-all duration-300"
                         style={{ width: `${progress.percentage}%` }}
                       ></div>
+                    </div>
+                  )}
+                  {props.flash?.success && (
+                    <div className="text-sm text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2 max-w-md">
+                      {props.flash.success}
                     </div>
                   )}
                   {errors.file && (
