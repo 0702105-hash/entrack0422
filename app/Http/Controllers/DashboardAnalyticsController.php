@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Prediction;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
 
@@ -10,12 +9,24 @@ class DashboardAnalyticsController extends Controller
 {
     public function index(): JsonResponse
     {
-        $summaryRow = Prediction::query()
+        // Every query below previously summed predicted_total across EVERY
+        // model's rows for a batch (LSTM + XGBoost + Ensemble), since none
+        // of them joined mlmodels or filtered by model name. That inflated
+        // every total by up to 3x once more than one model's predictions
+        // existed for the same program/year -- which is now the normal
+        // case. Filtering to 'Ensemble' matches the convention
+        // PredictionController::buildTimelineData() already uses for the
+        // Predictions page chart, so Dashboard and Predictions agree.
+        $model = 'Ensemble';
+
+        $summaryRow = DB::table('predictions as p')
+            ->join('mlmodels as m', 'm.mlmodel_id', '=', 'p.mlmodel_id')
+            ->where('m.mlmodel_name', $model)
             ->selectRaw('
-                COALESCE(SUM(predicted_total), 0) as total_predicted,
-                COALESCE(SUM(predicted_male), 0) as total_male,
-                COALESCE(SUM(predicted_female), 0) as total_female,
-                COALESCE(AVG(confidence), 0) as avg_confidence
+                COALESCE(SUM(p.predicted_total), 0) as total_predicted,
+                COALESCE(SUM(p.predicted_male), 0) as total_male,
+                COALESCE(SUM(p.predicted_female), 0) as total_female,
+                COALESCE(AVG(p.confidence), 0) as avg_confidence
             ')
             ->first();
 
@@ -29,6 +40,8 @@ class DashboardAnalyticsController extends Controller
         $programDistributionRows = DB::table('predictions')
             ->join('enrollment_batches', 'predictions.enrollment_batch_id', '=', 'enrollment_batches.enrollment_batch_id')
             ->join('programs', 'enrollment_batches.program_id', '=', 'programs.program_id')
+            ->join('mlmodels', 'predictions.mlmodel_id', '=', 'mlmodels.mlmodel_id')
+            ->where('mlmodels.mlmodel_name', $model)
             ->select(
                 'programs.program_name as name',
                 DB::raw('SUM(predictions.predicted_total) as value')
@@ -55,6 +68,8 @@ class DashboardAnalyticsController extends Controller
 
         $predictions = DB::table('predictions')
             ->join('enrollment_batches', 'predictions.enrollment_batch_id', '=', 'enrollment_batches.enrollment_batch_id')
+            ->join('mlmodels', 'predictions.mlmodel_id', '=', 'mlmodels.mlmodel_id')
+            ->where('mlmodels.mlmodel_name', $model)
             ->select(
                 'enrollment_batches.selected_year_start as year_start',
                 'enrollment_batches.selected_year_end as year_end',

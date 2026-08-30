@@ -8,9 +8,6 @@ use Inertia\Inertia;
 
 class PredictionController extends Controller
 {
-    /**
-    FOR PREDICTION PAGE!
-     */
     public function index(Request $request)
     {
         $selectedModel = $request->input('model', 'Ensemble');

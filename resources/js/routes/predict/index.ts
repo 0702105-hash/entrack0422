@@ -1,7 +1,7 @@
 import { queryParams, type RouteQueryOptions, type RouteDefinition, type RouteFormDefinition } from './../../wayfinder'
 /**
 * @see \App\Http\Controllers\PredictController::run
- * @see app/Http/Controllers/PredictController.php:11
+ * @see app/Http/Controllers/PredictController.php:14
  * @route '/predict'
  */
 export const run = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
@@ -16,7 +16,7 @@ run.definition = {
 
 /**
 * @see \App\Http\Controllers\PredictController::run
- * @see app/Http/Controllers/PredictController.php:11
+ * @see app/Http/Controllers/PredictController.php:14
  * @route '/predict'
  */
 run.url = (options?: RouteQueryOptions) => {
@@ -25,7 +25,7 @@ run.url = (options?: RouteQueryOptions) => {
 
 /**
 * @see \App\Http\Controllers\PredictController::run
- * @see app/Http/Controllers/PredictController.php:11
+ * @see app/Http/Controllers/PredictController.php:14
  * @route '/predict'
  */
 run.post = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
@@ -35,7 +35,7 @@ run.post = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
 
     /**
 * @see \App\Http\Controllers\PredictController::run
- * @see app/Http/Controllers/PredictController.php:11
+ * @see app/Http/Controllers/PredictController.php:14
  * @route '/predict'
  */
     const runForm = (options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
@@ -45,7 +45,7 @@ run.post = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
 
             /**
 * @see \App\Http\Controllers\PredictController::run
- * @see app/Http/Controllers/PredictController.php:11
+ * @see app/Http/Controllers/PredictController.php:14
  * @route '/predict'
  */
         runForm.post = (options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({

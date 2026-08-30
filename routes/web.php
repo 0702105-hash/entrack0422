@@ -8,6 +8,7 @@ use App\Http\Controllers\PredictController;
 use App\Http\Controllers\PredictionController;
 use App\Http\Controllers\PredictionRetrainController;
 use App\Http\Controllers\EnrollmentImportController;
+use App\Http\Controllers\AnalyticsController;
 use App\Http\Controllers\AuthController;
 
 Route::inertia('/', 'welcome', [
@@ -28,6 +29,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/predictions', [PredictionController::class, 'index'])->name('predictions.index');
     Route::post('/predict', [PredictController::class, 'predict'])->name('predict.run');
     Route::post('/predictions/retrain', [PredictionRetrainController::class, 'retrain'])->name('predictions.retrain');
+
+    // Analytics -- was fully built (controller + page) but had no route at
+    // all, so it was unreachable from anywhere in the app.
+    Route::get('/analytics', [AnalyticsController::class, 'index'])->name('analytics.index');
 
     // Import Route
     Route::post('/programs/import-enrollments', [EnrollmentImportController::class, 'store'])->name('enrollments.import');
