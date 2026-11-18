@@ -9,7 +9,14 @@ use Symfony\Component\Process\Process;
 class PredictController extends Controller
 {
     /**
-     FOR THE PREDICT BUTTON, TO CREATE PREDICTIONS!
+     * Run a single scoped forecast (one program, one target academic year,
+     * one model) via python-service/app/predict_program.py.
+     *
+     * This used to hardcode `C:\entrack\...` paths and a Windows-only Python
+     * executable, which is almost certainly why this broke the moment the
+     * project moved to a different machine/folder. It now resolves
+     * everything relative to base_path(), matching the pattern the
+     * `ml:retrain` Artisan command already used correctly.
      */
     public function predict(Request $request)
     {

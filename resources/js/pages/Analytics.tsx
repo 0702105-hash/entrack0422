@@ -1,7 +1,7 @@
-import React from 'react';
 import { Head } from '@inertiajs/react';
-import PublicLayout from '@/layouts/PublicLayout';
+import React from 'react';
 import Sidebar from '@/components/dashboard/Sidebar';
+import PublicLayout from '@/layouts/PublicLayout';
 
 // --- Types ---
 type ModelMetric = {
@@ -31,9 +31,16 @@ type Props = {
 
 
 const formatMetric = (value: number | string | null, digits = 4) => {
-    if (value === null || value === undefined || value === '') return '—';
+    if (value === null || value === undefined || value === '') {
+return '—';
+}
+
     const num = typeof value === 'number' ? value : Number(value);
-    if (Number.isNaN(num)) return '—';
+
+    if (Number.isNaN(num)) {
+return '—';
+}
+
     return num.toFixed(digits);
 };
 

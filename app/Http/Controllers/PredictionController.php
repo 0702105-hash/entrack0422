@@ -8,28 +8,94 @@ use Inertia\Inertia;
 
 class PredictionController extends Controller
 {
+    private const RECENT_DAYS = [
+        'day' => 1,
+        'week' => 7,
+        'month' => 30,
+        'year' => 365,
+    ];
+
     public function index(Request $request)
     {
         $selectedModel = $request->input('model', 'Ensemble');
         $models = DB::table('mlmodels')->pluck('mlmodel_name')->toArray();
         $programs = DB::table('programs')->get();
 
-        $programTrends = [];
-        foreach ($programs as $prog) {
-            $programTrends[] = [
-                'program_id' => $prog->program_id,
-                'program_name' => $prog->program_name,
-                'trend' => $this->buildTimelineData($prog->program_id, $selectedModel),
-            ];
-        }
+        $recent = $request->input('recent', 'all');
+        $selectedProgramId = $request->input('program_id') ?: null;
 
         return Inertia::render('Predictions', [
             'filters' => ['model' => $selectedModel],
             'models' => $models,
             'programs' => $programs,
-            'mainTrend' => $this->buildTimelineData(null, $selectedModel),
-            'predictionTrends' => $programTrends,
+            'mainTrend' => $this->buildTimelineData($selectedProgramId, $selectedModel),
+            'recentPredictions' => $this->buildRecentResults($recent),
+            'recentFilter' => $recent,
         ]);
+    }
+
+    /**
+     * One row per program+year batch that has at least one prediction,
+     * most recent first. Shows the average across whichever of
+     * LSTM/XGBoost/Ensemble actually have a prediction for that batch (not
+     * a hardcoded /3), plus the individual per-model numbers for the
+     * "view breakdown" modal on the Predictions page.
+     */
+    private function buildRecentResults(string $recent): array
+    {
+        $query = DB::table('predictions as p')
+            ->join('enrollment_batches as eb', 'eb.enrollment_batch_id', '=', 'p.enrollment_batch_id')
+            ->join('programs as prog', 'prog.program_id', '=', 'eb.program_id')
+            ->join('mlmodels as m', 'm.mlmodel_id', '=', 'p.mlmodel_id');
+
+        if (array_key_exists($recent, self::RECENT_DAYS)) {
+            $query->where('p.created_at', '>=', now()->subDays(self::RECENT_DAYS[$recent]));
+        }
+
+        $rows = $query
+            ->select(
+                'eb.enrollment_batch_id',
+                'prog.program_id',
+                'prog.program_name',
+                'eb.selected_year_start',
+                'eb.selected_year_end',
+                'm.mlmodel_name',
+                'p.predicted_total',
+                'p.predicted_male',
+                'p.predicted_female',
+                'p.confidence',
+                'p.created_at'
+            )
+            ->orderByDesc('p.created_at')
+            ->get()
+            ->groupBy('enrollment_batch_id');
+
+        return $rows->map(function ($modelRows) {
+            $first = $modelRows->first();
+
+            $breakdown = $modelRows->map(fn ($r) => [
+                'model' => $r->mlmodel_name,
+                'total' => (int) $r->predicted_total,
+                'male' => (int) $r->predicted_male,
+                'female' => (int) $r->predicted_female,
+                'confidence' => round((float) $r->confidence * 100, 1),
+            ])->values();
+
+            return [
+                'enrollment_batch_id' => $first->enrollment_batch_id,
+                'program_id' => $first->program_id,
+                'program_name' => $first->program_name,
+                'academic_year' => $first->selected_year_start . '-' . $first->selected_year_end,
+                'average' => (int) round($modelRows->avg('predicted_total')),
+                'average_male' => (int) round($modelRows->avg('predicted_male')),
+                'average_female' => (int) round($modelRows->avg('predicted_female')),
+                'generated_at' => $modelRows->max('created_at'),
+                'breakdown' => $breakdown,
+            ];
+        })
+        ->sortByDesc('generated_at')
+        ->values()
+        ->toArray();
     }
 
     private function buildTimelineData($programId, $modelName): array

@@ -16,9 +16,6 @@ class MLModelSeeder extends Seeder
             'mlmodel_name'=> 'LSTM',
         ]);
         DB::table('mlmodels')->insert([
-            'mlmodel_name'=> 'Prophet',
-        ]);
-        DB::table('mlmodels')->insert([
             'mlmodel_name'=> 'XGBoost',
         ]);
         DB::table('mlmodels')->insert([

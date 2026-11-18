@@ -24,6 +24,14 @@ class EnrollmentImportController extends Controller
 
     public function store(Request $request)
     {
+        // This request triggers a full synchronous model retrain further
+        // down (Artisan::call('ml:retrain', ...)), which can take well
+        // over PHP's default max_execution_time. Without raising it here,
+        // a slow retrain gets killed mid-request by PHP itself -- which
+        // looks to the browser like a permanently stuck "Uploading..."
+        // button, since the response never properly completes.
+        set_time_limit(600);
+
         $request->validate([
             'file' => 'required|file|mimes:xlsx,xls,csv,txt|max:10240',
         ]);

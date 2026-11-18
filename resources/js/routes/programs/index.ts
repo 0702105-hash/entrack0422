@@ -79,7 +79,7 @@ index.head = (options?: RouteQueryOptions): RouteDefinition<'head'> => ({
     index.form = indexForm
 /**
 * @see \App\Http\Controllers\ProgramsController::manage
- * @see app/Http/Controllers/ProgramsController.php:57
+ * @see app/Http/Controllers/ProgramsController.php:96
  * @route '/programs/manage'
  */
 export const manage = (options?: RouteQueryOptions): RouteDefinition<'get'> => ({
@@ -94,7 +94,7 @@ manage.definition = {
 
 /**
 * @see \App\Http\Controllers\ProgramsController::manage
- * @see app/Http/Controllers/ProgramsController.php:57
+ * @see app/Http/Controllers/ProgramsController.php:96
  * @route '/programs/manage'
  */
 manage.url = (options?: RouteQueryOptions) => {
@@ -103,7 +103,7 @@ manage.url = (options?: RouteQueryOptions) => {
 
 /**
 * @see \App\Http\Controllers\ProgramsController::manage
- * @see app/Http/Controllers/ProgramsController.php:57
+ * @see app/Http/Controllers/ProgramsController.php:96
  * @route '/programs/manage'
  */
 manage.get = (options?: RouteQueryOptions): RouteDefinition<'get'> => ({
@@ -112,7 +112,7 @@ manage.get = (options?: RouteQueryOptions): RouteDefinition<'get'> => ({
 })
 /**
 * @see \App\Http\Controllers\ProgramsController::manage
- * @see app/Http/Controllers/ProgramsController.php:57
+ * @see app/Http/Controllers/ProgramsController.php:96
  * @route '/programs/manage'
  */
 manage.head = (options?: RouteQueryOptions): RouteDefinition<'head'> => ({
@@ -122,7 +122,7 @@ manage.head = (options?: RouteQueryOptions): RouteDefinition<'head'> => ({
 
     /**
 * @see \App\Http\Controllers\ProgramsController::manage
- * @see app/Http/Controllers/ProgramsController.php:57
+ * @see app/Http/Controllers/ProgramsController.php:96
  * @route '/programs/manage'
  */
     const manageForm = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
@@ -132,7 +132,7 @@ manage.head = (options?: RouteQueryOptions): RouteDefinition<'head'> => ({
 
             /**
 * @see \App\Http\Controllers\ProgramsController::manage
- * @see app/Http/Controllers/ProgramsController.php:57
+ * @see app/Http/Controllers/ProgramsController.php:96
  * @route '/programs/manage'
  */
         manageForm.get = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
@@ -141,7 +141,7 @@ manage.head = (options?: RouteQueryOptions): RouteDefinition<'head'> => ({
         })
             /**
 * @see \App\Http\Controllers\ProgramsController::manage
- * @see app/Http/Controllers/ProgramsController.php:57
+ * @see app/Http/Controllers/ProgramsController.php:96
  * @route '/programs/manage'
  */
         manageForm.head = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
@@ -157,7 +157,7 @@ manage.head = (options?: RouteQueryOptions): RouteDefinition<'head'> => ({
     manage.form = manageForm
 /**
 * @see \App\Http\Controllers\ProgramsController::store
- * @see app/Http/Controllers/ProgramsController.php:68
+ * @see app/Http/Controllers/ProgramsController.php:107
  * @route '/programs'
  */
 export const store = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
@@ -172,7 +172,7 @@ store.definition = {
 
 /**
 * @see \App\Http\Controllers\ProgramsController::store
- * @see app/Http/Controllers/ProgramsController.php:68
+ * @see app/Http/Controllers/ProgramsController.php:107
  * @route '/programs'
  */
 store.url = (options?: RouteQueryOptions) => {
@@ -181,7 +181,7 @@ store.url = (options?: RouteQueryOptions) => {
 
 /**
 * @see \App\Http\Controllers\ProgramsController::store
- * @see app/Http/Controllers/ProgramsController.php:68
+ * @see app/Http/Controllers/ProgramsController.php:107
  * @route '/programs'
  */
 store.post = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
@@ -191,7 +191,7 @@ store.post = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
 
     /**
 * @see \App\Http\Controllers\ProgramsController::store
- * @see app/Http/Controllers/ProgramsController.php:68
+ * @see app/Http/Controllers/ProgramsController.php:107
  * @route '/programs'
  */
     const storeForm = (options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
@@ -201,7 +201,7 @@ store.post = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
 
             /**
 * @see \App\Http\Controllers\ProgramsController::store
- * @see app/Http/Controllers/ProgramsController.php:68
+ * @see app/Http/Controllers/ProgramsController.php:107
  * @route '/programs'
  */
         storeForm.post = (options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
@@ -212,7 +212,7 @@ store.post = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
     store.form = storeForm
 /**
 * @see \App\Http\Controllers\ProgramsController::update
- * @see app/Http/Controllers/ProgramsController.php:84
+ * @see app/Http/Controllers/ProgramsController.php:123
  * @route '/programs/{program}'
  */
 export const update = (args: { program: string | number } | [program: string | number ] | string | number, options?: RouteQueryOptions): RouteDefinition<'put'> => ({
@@ -227,7 +227,7 @@ update.definition = {
 
 /**
 * @see \App\Http\Controllers\ProgramsController::update
- * @see app/Http/Controllers/ProgramsController.php:84
+ * @see app/Http/Controllers/ProgramsController.php:123
  * @route '/programs/{program}'
  */
 update.url = (args: { program: string | number } | [program: string | number ] | string | number, options?: RouteQueryOptions) => {
@@ -255,7 +255,7 @@ update.url = (args: { program: string | number } | [program: string | number ] |
 
 /**
 * @see \App\Http\Controllers\ProgramsController::update
- * @see app/Http/Controllers/ProgramsController.php:84
+ * @see app/Http/Controllers/ProgramsController.php:123
  * @route '/programs/{program}'
  */
 update.put = (args: { program: string | number } | [program: string | number ] | string | number, options?: RouteQueryOptions): RouteDefinition<'put'> => ({
@@ -265,7 +265,7 @@ update.put = (args: { program: string | number } | [program: string | number ] |
 
     /**
 * @see \App\Http\Controllers\ProgramsController::update
- * @see app/Http/Controllers/ProgramsController.php:84
+ * @see app/Http/Controllers/ProgramsController.php:123
  * @route '/programs/{program}'
  */
     const updateForm = (args: { program: string | number } | [program: string | number ] | string | number, options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
@@ -280,7 +280,7 @@ update.put = (args: { program: string | number } | [program: string | number ] |
 
             /**
 * @see \App\Http\Controllers\ProgramsController::update
- * @see app/Http/Controllers/ProgramsController.php:84
+ * @see app/Http/Controllers/ProgramsController.php:123
  * @route '/programs/{program}'
  */
         updateForm.put = (args: { program: string | number } | [program: string | number ] | string | number, options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
@@ -296,7 +296,7 @@ update.put = (args: { program: string | number } | [program: string | number ] |
     update.form = updateForm
 /**
 * @see \App\Http\Controllers\ProgramsController::destroy
- * @see app/Http/Controllers/ProgramsController.php:100
+ * @see app/Http/Controllers/ProgramsController.php:139
  * @route '/programs/{program}'
  */
 export const destroy = (args: { program: string | number } | [program: string | number ] | string | number, options?: RouteQueryOptions): RouteDefinition<'delete'> => ({
@@ -311,7 +311,7 @@ destroy.definition = {
 
 /**
 * @see \App\Http\Controllers\ProgramsController::destroy
- * @see app/Http/Controllers/ProgramsController.php:100
+ * @see app/Http/Controllers/ProgramsController.php:139
  * @route '/programs/{program}'
  */
 destroy.url = (args: { program: string | number } | [program: string | number ] | string | number, options?: RouteQueryOptions) => {
@@ -339,7 +339,7 @@ destroy.url = (args: { program: string | number } | [program: string | number ] 
 
 /**
 * @see \App\Http\Controllers\ProgramsController::destroy
- * @see app/Http/Controllers/ProgramsController.php:100
+ * @see app/Http/Controllers/ProgramsController.php:139
  * @route '/programs/{program}'
  */
 destroy.delete = (args: { program: string | number } | [program: string | number ] | string | number, options?: RouteQueryOptions): RouteDefinition<'delete'> => ({
@@ -349,7 +349,7 @@ destroy.delete = (args: { program: string | number } | [program: string | number
 
     /**
 * @see \App\Http\Controllers\ProgramsController::destroy
- * @see app/Http/Controllers/ProgramsController.php:100
+ * @see app/Http/Controllers/ProgramsController.php:139
  * @route '/programs/{program}'
  */
     const destroyForm = (args: { program: string | number } | [program: string | number ] | string | number, options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
@@ -364,7 +364,7 @@ destroy.delete = (args: { program: string | number } | [program: string | number
 
             /**
 * @see \App\Http\Controllers\ProgramsController::destroy
- * @see app/Http/Controllers/ProgramsController.php:100
+ * @see app/Http/Controllers/ProgramsController.php:139
  * @route '/programs/{program}'
  */
         destroyForm.delete = (args: { program: string | number } | [program: string | number ] | string | number, options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({

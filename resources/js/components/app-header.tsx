@@ -66,7 +66,7 @@ const activeItemStyles =
 export function AppHeader({ breadcrumbs = [] }: Props) {
     const page = usePage();
     const { auth } = page.props;
-    const getInitials = useInitials();
+    const initials = useInitials(auth.user?.name);
     const { isCurrentUrl, whenCurrentUrl } = useCurrentUrl();
 
     return (
@@ -222,7 +222,7 @@ export function AppHeader({ breadcrumbs = [] }: Props) {
                                             alt={auth.user?.name}
                                         />
                                         <AvatarFallback className="rounded-lg bg-neutral-200 text-black dark:bg-neutral-700 dark:text-white">
-                                            {getInitials(auth.user?.name ?? '')}
+                                            {initials}
                                         </AvatarFallback>
                                     </Avatar>
                                 </Button>

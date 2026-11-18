@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
-import { Head, Link, router } from '@inertiajs/react';
-import PublicLayout from '@/layouts/PublicLayout';
-import Sidebar from '@/components/dashboard/Sidebar';
+import { Head, router } from '@inertiajs/react';
 import { Pencil, Trash2, Plus } from 'lucide-react';
+import React, { useState } from 'react';
+import Sidebar from '@/components/dashboard/Sidebar';
+import PublicLayout from '@/layouts/PublicLayout';
 
 type Program = {
   program_id: number;
@@ -23,7 +23,9 @@ export default function ProgramsManage({ programs }: Props) {
   const [editName, setEditName] = useState('');
 
   const handleCreate = () => {
-    if (!programName.trim()) return;
+    if (!programName.trim()) {
+return;
+}
 
     router.post(
       '/programs',
@@ -44,7 +46,9 @@ export default function ProgramsManage({ programs }: Props) {
   };
 
   const handleEdit = () => {
-    if (!editProgram || !editName.trim()) return;
+    if (!editProgram || !editName.trim()) {
+return;
+}
 
     router.put(`/programs/${editProgram.program_id}`, { program_name: editName }, {
       onSuccess: () => {
@@ -56,7 +60,10 @@ export default function ProgramsManage({ programs }: Props) {
   };
 
   const handleDelete = (id: number) => {
-    if (!confirm('Delete this program?')) return;
+    if (!confirm('Delete this program?')) {
+return;
+}
+
     router.delete(`/programs/${id}`);
   };
 

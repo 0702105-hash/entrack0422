@@ -1,12 +1,12 @@
-numpy==1.26.4
-pandas>=2.2.2
+numpy>=2.0.0,<2.3
+pandas>=2.2.2,<3.0.0
 tensorflow>=2.16.1
 keras>=3.3.3
-scikit-learn>=1.4.2
+scikit-learn>=1.6.1,<2.0.0
 mysql-connector-python>=9.0.0
 openpyxl>=3.1.5
 xlrd>=2.0.1
-scipy>=1.13.1
+scipy==1.14.1
 pytz>=2024.1
 xgboost>=2.0.3
 python-dotenv>=1.0.1

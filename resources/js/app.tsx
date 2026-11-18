@@ -1,12 +1,12 @@
 import { createInertiaApp } from '@inertiajs/react';
+import axios from 'axios';
+import React, { useEffect } from 'react';
 import { Toaster } from '@/components/ui/sonner';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { initializeTheme } from '@/hooks/use-appearance';
 import AppLayout from '@/layouts/app-layout';
 import AuthLayout from '@/layouts/auth-layout';
 import SettingsLayout from '@/layouts/settings/layout';
-import axios from 'axios';
-import React, { useEffect } from 'react';
 
 const appName = import.meta.env.VITE_APP_NAME || 'Laravel';
 
@@ -14,12 +14,15 @@ function AppInitializer() {
     useEffect(() => {
         // Set CSRF token header (browser only)
         const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+
         if (token) {
             axios.defaults.headers.common['X-CSRF-TOKEN'] = token;
         }
+
         // Set theme on load
         initializeTheme();
     }, []);
+
     return null;
 }
 

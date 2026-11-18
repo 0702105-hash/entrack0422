@@ -50,6 +50,7 @@ const CustomTooltip = ({ active, payload }: any) => {
       </div>
     );
   }
+
   return null;
 };
 
